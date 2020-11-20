@@ -1,0 +1,7 @@
+<launch>
+
+  
+  <!-- Load file to store joint data -->
+  <node name="jointstorage" pkg="number_block_sorting" type="jointstorage.py" output="screen" />
+
+</launch>
