@@ -28,6 +28,7 @@ def subscribe_joint_states():
 
 
 if __name__ == '__main__':
-    joints = open("TestRunData.txt", "w")
+    #stores the data in a text file at this file path, change the path if the script is used in a different project
+    joints = open("~/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/testrundata/Joint_Info_Run_1.txt", "w")
     joints.close()
     subscribe_joint_states()
