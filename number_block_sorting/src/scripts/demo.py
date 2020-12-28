@@ -1,17 +1,43 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 
-#Ryan Donald 11/20/2020. 
-# This script accounts for the translation of an object for this project,
-# sorting blocks based on the number on the block.
+# Copyright (c) 2015, Fetch Robotics Inc.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#     * Neither the name of the Fetch Robotics Inc. nor the names of its
+#       contributors may be used to endorse or promote products derived from
+#       this software without specific prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL FETCH ROBOTICS INC. BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# Author: Michael Ferguson
 
 import copy
-import rospy
 import actionlib
-import math
+import rospy
+
 from math import sin, cos
+from moveit_python import (MoveGroupInterface,
+                           PlanningSceneInterface,
+                           PickPlaceInterface)
 from moveit_python.geometry import rotate_pose_msg_by_euler_angles
-from moveit_python import MoveGroupInterface, PlanningSceneInterface, PickPlaceInterface
+
 from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryGoal
 from control_msgs.msg import PointHeadAction, PointHeadGoal
 from grasping_msgs.msg import FindGraspableObjectsAction, FindGraspableObjectsGoal
@@ -20,37 +46,26 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from moveit_msgs.msg import PlaceLocation, MoveItErrorCodes
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
-#global variables for position
-
-pos1 = [-0.1, 1, 0.83]
-pos2 = [0.1, 1, 0.83]
-posIntermediate = [1.2, 0, 0.87]
-
+# Move base using navigation stack
 class MoveBaseClient(object):
 
     def __init__(self):
-
         self.client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
         rospy.loginfo("Waiting for move_base...")
         self.client.wait_for_server()
 
     def goto(self, x, y, theta, frame="map"):
+        move_goal = MoveBaseGoal()
+        move_goal.target_pose.pose.position.x = x
+        move_goal.target_pose.pose.position.y = y
+        move_goal.target_pose.pose.orientation.z = sin(theta/2.0)
+        move_goal.target_pose.pose.orientation.w = cos(theta/2.0)
+        move_goal.target_pose.header.frame_id = frame
+        move_goal.target_pose.header.stamp = rospy.Time.now()
 
-        #creates an end goal position in the space for the movement.
-        end_move = MoveBaseGoal()
-        end_move.target_pose.pose.position = [x,y,z]
-
-        #creates the end goal oreintation angle of the robot.
-        end_move.target_pose.pose.orientation.z = sin(theta/2.0)
-        end_move.target_pose.pose.orientation.w = cos(theta/2.0)
-
-        #appends the header information to the PoseStamped msg.
-        end_move.target_pose.header.stamp = rospy.Time.now()
-        end_move.target_pose.header.frame_id = frame
-
-        self.client.send_goal(end_move)
+        # TODO wait for things to work
+        self.client.send_goal(move_goal)
         self.client.wait_for_result()
-
 
 # Send a trajectory to controller
 class FollowTrajectoryClient(object):
@@ -98,7 +113,7 @@ class PointHeadClient(object):
         self.client.send_goal(goal)
         self.client.wait_for_result()
 
-# functions used in grasping.
+# Tools for grasping
 class GraspingClient(object):
 
     def __init__(self):
@@ -134,8 +149,7 @@ class GraspingClient(object):
             self.scene.addSolidPrimitive(obj.object.name,
                                          obj.object.primitives[0],
                                          obj.object.primitive_poses[0],
-                                         #wait = False
-					)
+                                         wait = False)
 
         for obj in find_result.support_surfaces:
             # extend surface to floor, and make wider since we have narrow field of view
@@ -149,8 +163,7 @@ class GraspingClient(object):
             self.scene.addSolidPrimitive(obj.name,
                                          obj.primitives[0],
                                          obj.primitive_poses[0],
-                                         #wait = False
-					)
+                                         wait = False)
 
         self.scene.waitForSync()
 
@@ -158,7 +171,6 @@ class GraspingClient(object):
         self.objects = find_result.objects
         self.surfaces = find_result.support_surfaces
 
-    # finds the cube that is to be grasped.
     def getGraspableCube(self):
         graspable = None
         for obj in self.objects:
@@ -197,17 +209,26 @@ class GraspingClient(object):
         self.pick_result = pick_result
         return success
 
-    def place(self, block, x, y, z, roll, pitch, yaw):
-
+    def place(self, block, pose_stamped):
         places = list()
-        
-        #creates a pose for the end place of postion x,y,z and oreintation x,y,z,w made from an euler angle conversion
-        placePos = PlaceLocation()
-        placePos.place_pose.pose.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(roll, pitch, yaw))
-        placePos.place_pose.pose.position.x = x
-        placePos.place_pose.pose.position.y = y
-        placePos.place_pose.pose.position.z = z
-        placePos.place_pose.header.frame_id = pose_stamped.header.frame_id
+        l = PlaceLocation()
+        l.place_pose.pose = pose_stamped.pose
+        l.place_pose.header.frame_id = pose_stamped.header.frame_id
+
+        # copy the posture, approach and retreat from the grasp used
+        l.post_place_posture = self.pick_result.grasp.pre_grasp_posture
+        l.pre_place_approach = self.pick_result.grasp.pre_grasp_approach
+        l.post_place_retreat = self.pick_result.grasp.post_grasp_retreat
+
+
+
+        places.append(copy.deepcopy(l))
+        # create another several places, rotate each by 360/m degrees in yaw direction
+        m = 16 # number of possible place poses
+        pi = 3.141592653589
+        for i in range(0, m-1):
+            l.place_pose.pose = rotate_pose_msg_by_euler_angles(l.place_pose.pose, 0, 0, 2 * pi / m)
+            places.append(copy.deepcopy(l))
 
         success, place_result = self.pickplace.place_with_retry(block.name,
                                                                 places,
@@ -223,27 +244,32 @@ class GraspingClient(object):
             if result.error_code.val == MoveItErrorCodes.SUCCESS:
                 return
 
-
 if __name__ == "__main__":
+    # Create a node
+    rospy.init_node("demo")
 
-    rospy.init_node("translation")
-
+    # Make sure sim time is working
     while not rospy.Time.now():
         pass
 
-    #initialization of the multiple clients.
+    # Setup clients
     move_base = MoveBaseClient()
     torso_action = FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
     head_action = PointHeadClient()
     grasping_client = GraspingClient()
 
-    move_base.goto(0, 0, 2.2)
+    # Move the base to be in front of the table
+    # Demonstrates the use of the navigation stack
+    rospy.loginfo("Moving to table...")
+    move_base.goto(2.250, 3.118, 0.0)
+    move_base.goto(2.750, 3.118, 0.0)
 
-    rospy.loginfo("Beginning manipulation...")
-
+    # Raise the torso using just a controller
+    rospy.loginfo("Raising torso...")
     torso_action.move_to([0.4, ])
 
-    head_action.look_at(-0.1, 1.2, 0.0, "map")
+    # Point the head at the cube we want to pick
+    head_action.look_at(3.7, 3.18, 0.0, "map")
 
     # Get block to pick
     while not rospy.is_shutdown():
@@ -259,7 +285,33 @@ if __name__ == "__main__":
             break
         rospy.logwarn("Grasping failed.")
 
+    # Tuck the arm
+    grasping_client.tuck()
 
+    # Lower torso
+    rospy.loginfo("Lowering torso...")
+    torso_action.move_to([0.0, ])
 
+    # Move to second table
+    rospy.loginfo("Moving to second table...")
+    move_base.goto(-3.53, 3.75, 1.57)
+    move_base.goto(-3.53, 4.15, 1.57)
 
+    # Raise the torso using just a controller
+    rospy.loginfo("Raising torso...")
+    torso_action.move_to([0.4, ])
 
+    # Place the block
+    while not rospy.is_shutdown():
+        rospy.loginfo("Placing object...")
+        pose = PoseStamped()
+        pose.pose = cube.primitive_poses[0]
+        pose.pose.position.z += 0.05
+        pose.header.frame_id = cube.header.frame_id
+        if grasping_client.place(cube, pose):
+            break
+        rospy.logwarn("Placing failed.")
+
+    # Tuck the arm, lower the torso
+    grasping_client.tuck()
+    torso_action.move_to([0.0, ])

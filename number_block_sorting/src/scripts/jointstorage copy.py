@@ -10,7 +10,7 @@ run = 1
 
 def callback(data):
     global run
-    joints = open("~/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/testrundata/Joint_Info_Run_1.txt", "a")
+    joints = open("TestRunData.txt", "a")
     joints.write("Time of run: " + str(data.header.time) + "\n\n")
     joints.write("Joint Names:\n" + str(data.name) + "\n")
     joints.write("Joint positions:\n" + str(data.position) + "\n")
