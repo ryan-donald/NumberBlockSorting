@@ -39,7 +39,7 @@ class objectPositions():
 
     def storeObjects(self, objects):
         self.objects = np.copy(objects)
-        self.objects.append(0)
+        self.objects.append([0])
 
 
 class Grasping(object):
