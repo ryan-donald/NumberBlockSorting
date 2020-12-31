@@ -52,6 +52,8 @@ class PyperPlanTranslation:
 
         self.commands = inF.readlines()
 
+        inF.close()
+
         
 
 

@@ -9,6 +9,7 @@ import copy
 import rospy
 import actionlib
 import numpy as np
+import re
 #import pyperplantranslate.py as pplt
 
 from tf.transformations import quaternion_from_euler
@@ -29,10 +30,9 @@ class objectPositions():
 
     #booleans for if an object is stored in a specific spot or not. 0 = empty, last index is the intermediate spot
     objects = np.array([0, 0, 0, 0, 0])
+    def objectInPos(self, testPos, testValue):
 
-    def objectInPos(self, testPos):
-
-        if objects[testPos] != "":
+        if objects[testPos] == testValue:
             return True
         else:
             return False
@@ -40,6 +40,19 @@ class objectPositions():
     def storeObjects(self, objects):
         self.objects = np.copy(objects)
         self.objects.append([0])
+
+    def posOfObject(self, num):
+
+        for x in objects:
+            if x == num:
+                return x
+            else:
+                continue
+            
+            
+        
+        
+    
 
 
 class Grasping(object):
@@ -286,18 +299,45 @@ if __name__ == "__main__":
     grasping_class = Grasping()
     rospy.loginfo("Grasping Class Initialized")
 
+    objectPos = objectPositions()
 
-
-    #symbolicPlanner = pplt.PyperPlanTranslation()
+    symbolicPlanner = pplt.PyperPlanTranslation()
 
     #for loop for interpretation of pyperplan solution
     #for x in symbolicPlanner.commands:
     #    if "place" in symbolicPlanner.commands:
+    #
     #        #place block in hand
     #    elif "pick-up" in symbolicPlanner.commands:
     #        #pickup block specified
     #    elif "sort" in symbolicPlanner.commands:
     #        #sort the two blocks, destination zone in the left of the block
+
+    for x in symbolicPlanner.commands:
+        temp = re.findall(r'\d+', x)
+        num = list(map(int, temp))
+
+        if "sort" in x:
+            grasping_class.swapBlockPos(objectPos.posOfObject(num(0)),objectPos.posOfObject(num(1)))
+        elif "place" in x:
+            #grasping_class.place()
+        elif "pick-up" in x:
+            # Get block to pick
+            while not rospy.is_shutdown():
+                rospy.loginfo("Picking object...")
+                self.updateScene()
+                cube, grasps = self.getGraspableCube(posPlaces(objectPos.posOfObject(num(0))))
+                if cube == None:
+                rospy.logwarn("Perception failed.")
+                continue
+
+            # Pick the block
+            if self.pickup(cube, grasps):
+                break
+            rospy.logwarn("Grasping failed.")
+        
+        #end if statements
+    #end for loop    
 
     
     

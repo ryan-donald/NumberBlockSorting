@@ -10,7 +10,7 @@
 	       (clear ?x - block)
 	       (handempty)
 	       (holding ?x - block)
-	       (swapped ?x - block ?y - block)
+	       (left ?x - block ?y - block)
 	       )
 
   (:action pick-up
@@ -48,15 +48,6 @@
 		   (not (clear ?x))
 		   (not (handempty))
 		   (not (on ?x ?y))))
-  (:action swap
-	     :parameters (?x - block ?y - block)
-	     :precondition (and (holding ?x) (clear ?y) (ontable ?y) )
-	     :effect
-	     (and  (swapped ?x ?y)
-		   (ontable ?x)
-		   (ontable ?y)
-		   (clear ?x)
-		   (clear ?y)))
   (:action sort
 	     :parameters (?x - block ?y - block)
 	     :precondition (and  (holding ?x) (clear ?y) (ontable ?y) )
@@ -64,6 +55,6 @@
 	     (and (clear ?x)
 		  (clear ?y)
 		  (left ?x ?y)
-		  (ontable ?x)))))
+		  (ontable ?x))))
   
 
