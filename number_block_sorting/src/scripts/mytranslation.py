@@ -9,6 +9,7 @@ import copy
 import rospy
 import actionlib
 import numpy as np
+import pyperplantranslate as pplt
 import re
 #import pyperplantranslate.py as pplt
 
@@ -28,7 +29,6 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 #class used to store the current positions of the objects. Used in sorting to check if there is an object in the wanted position.
 class objectPositions():
 
-    #booleans for if an object is stored in a specific spot or not. 0 = empty, last index is the intermediate spot
     objects = np.array([0, 0, 0, 0, 0])
     def objectInPos(self, testPos, testValue):
 
@@ -43,7 +43,7 @@ class objectPositions():
 
     def posOfObject(self, num):
 
-        for x in objects:
+        for x in self.objects:
             if x == num:
                 return x
             else:
@@ -303,6 +303,8 @@ if __name__ == "__main__":
 
     symbolicPlanner = pplt.PyperPlanTranslation()
 
+    symbolicPlanner.InterpretSolution()
+
     #for loop for interpretation of pyperplan solution
     #for x in symbolicPlanner.commands:
     #    if "place" in symbolicPlanner.commands:
@@ -313,34 +315,6 @@ if __name__ == "__main__":
     #    elif "sort" in symbolicPlanner.commands:
     #        #sort the two blocks, destination zone in the left of the block
 
-    for x in symbolicPlanner.commands:
-        temp = re.findall(r'\d+', x)
-        num = list(map(int, temp))
-
-        if "sort" in x:
-            grasping_class.swapBlockPos(objectPos.posOfObject(num(0)),objectPos.posOfObject(num(1)))
-        elif "place" in x:
-            #grasping_class.place()
-        elif "pick-up" in x:
-            # Get block to pick
-            while not rospy.is_shutdown():
-                rospy.loginfo("Picking object...")
-                self.updateScene()
-                cube, grasps = self.getGraspableCube(posPlaces(objectPos.posOfObject(num(0))))
-                if cube == None:
-                rospy.logwarn("Perception failed.")
-                continue
-
-            # Pick the block
-            if self.pickup(cube, grasps):
-                break
-            rospy.logwarn("Grasping failed.")
-        
-        #end if statements
-    #end for loop    
-
-    
-    
 
     #FROM DEMO.PY
     torso_action = demo.FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
@@ -353,6 +327,32 @@ if __name__ == "__main__":
 
     head_action.look_at(0.8, 0, 0.43, "map")
 
-    grasping_class.swapBlockPos(posPlaces[1],posPlaces[3])
+    rospy.loginfo("ForLoop Doesnt Work")
+    for x in symbolicPlanner.commands:
+        rospy.loginfo("forloopworks")
+        temp = re.findall(r'\d+', x)
+        num = list(map(int, temp))
 
-    
+        if "sort" in x:
+            grasping_class.swapBlockPos(posPlaces[objectPos.posOfObject(num(0))],posPlaces[objectPos.posOfObject(num(1))])
+        #elif "place" in x:
+            #grasping_class.place()
+        #elif "pick-up" in x:
+            # Get block to pick
+            #while not rospy.is_shutdown():
+            #    rospy.loginfo("Picking object...")
+            #    self.updateScene()
+            #    cube, grasps = self.getGraspableCube(posPlaces(objectPos.posOfObject(num(0))))
+            #    if cube == None:
+            #    rospy.logwarn("Perception failed.")
+            #    continue
+
+            # Pick the block
+            #if self.pickup(cube, grasps):
+            #    break
+            #rospy.logwarn("Grasping failed.")
+
+        #end if statements
+    #end for loop    
+    #grasping_class.swapBlockPos(posPlaces[1],posPlaces[3])
+
