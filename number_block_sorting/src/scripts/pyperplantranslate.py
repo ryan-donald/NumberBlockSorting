@@ -41,14 +41,14 @@ class PyperPlanTranslation:
     #creates the task.pddl file in the right format to be used with pyperplan using the strings created 
     def CreatePDDLFile(self):
 
-        outF = open("testrundata/sortTask01.pddl", 'w')
+        outF = open("sortTask01.pddl", 'w')
 
         outF.write(self.defineStr + "(:domain BLOCKS)\n" + self.objStr + self.initStr + self.goalStr)
 
         outF.close()
 
     def InterpretSolution(self):
-        inF = open("testrundata/sortTask01.pddl.soln", 'r')
+        inF = open("/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/scripts/sortTask01.pddl.soln", 'r')
 
         self.commands = inF.readlines()
 

@@ -29,7 +29,7 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 #class used to store the current positions of the objects. Used in sorting to check if there is an object in the wanted position.
 class objectPositions():
 
-    objects = np.array([0, 0, 0, 0, 0])
+    objects = np.array([1, 4, 3, 2])
     def objectInPos(self, testPos, testValue):
 
         if objects[testPos] == testValue:
@@ -42,18 +42,13 @@ class objectPositions():
         self.objects.append([0])
 
     def posOfObject(self, num):
-
+        idx = 0
         for x in self.objects:
             if x == num:
-                return x
-            else:
-                continue
+                return idx
             
+            idx = idx + 1
             
-        
-        
-    
-
 
 class Grasping(object):
 
@@ -297,6 +292,7 @@ if __name__ == "__main__":
     currentPos = np.array([[]])
 
     grasping_class = Grasping()
+
     rospy.loginfo("Grasping Class Initialized")
 
     objectPos = objectPositions()
@@ -326,15 +322,26 @@ if __name__ == "__main__":
 
 
     head_action.look_at(0.8, 0, 0.43, "map")
-
+    #grasping_class.swapBlockPos(posPlaces[0], posPlaces[2])
     rospy.loginfo("ForLoop Doesnt Work")
+
     for x in symbolicPlanner.commands:
         rospy.loginfo("forloopworks")
-        temp = re.findall(r'\d+', x)
-        num = list(map(int, temp))
-
-        if "sort" in x:
-            grasping_class.swapBlockPos(posPlaces[objectPos.posOfObject(num(0))],posPlaces[objectPos.posOfObject(num(1))])
+        #temp = re.findall(r'\d+', x)
+        #num = list(map(int, temp))
+        temp = x.replace("(","")
+        temp = temp.replace(")","")
+        temp = temp.split()
+        print("\n\n\n\n")
+        print(temp)
+        print("\n\n\n\n")
+        if temp[0] == "sort":
+            grasping_class.swapBlockPos(
+                posPlaces[objectPos.posOfObject(int(temp[1]))],
+                posPlaces[objectPos.posOfObject(int(temp[2]))])
+            y = objectPos.objects[objectPos.posOfObject(int(temp[1]))]
+            objectPos.objects[objectPos.posOfObject(int(temp[1]))] = objectPos.objects[objectPos.posOfObject(int(temp[2]))]
+            objectPos.objects[objectPos.posOfObject(int(temp[2]))] = y
         #elif "place" in x:
             #grasping_class.place()
         #elif "pick-up" in x:
@@ -353,6 +360,8 @@ if __name__ == "__main__":
             #rospy.logwarn("Grasping failed.")
 
         #end if statements
+
+
     #end for loop    
     #grasping_class.swapBlockPos(posPlaces[1],posPlaces[3])
 
