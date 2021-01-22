@@ -27,6 +27,34 @@ from grasping_msgs.msg import FindGraspableObjectsAction, FindGraspableObjectsGo
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 #class used to store the current positions of the objects. Used in sorting to check if there is an object in the wanted position.
+
+# Send a trajectory to controller
+class FollowTrajectoryClient(object):
+
+    def __init__(self, name, joint_names):
+        self.client = actionlib.SimpleActionClient("%s/follow_joint_trajectory" % name,
+                                                   FollowJointTrajectoryAction)
+        rospy.loginfo("Waiting for %s..." % name)
+        self.client.wait_for_server()
+        self.joint_names = joint_names
+
+    def move_to(self, positions, duration=5.0):
+        if len(self.joint_names) != len(positions):
+            print("Invalid trajectory position")
+            return False
+        trajectory = JointTrajectory()
+        trajectory.joint_names = self.joint_names
+        trajectory.points.append(JointTrajectoryPoint())
+        trajectory.points[0].positions = positions
+        trajectory.points[0].velocities = [0.0 for _ in positions]
+        trajectory.points[0].accelerations = [0.0 for _ in positions]
+        trajectory.points[0].time_from_start = rospy.Duration(duration)
+        follow_goal = FollowJointTrajectoryGoal()
+        follow_goal.trajectory = trajectory
+
+        self.client.send_goal(follow_goal)
+        self.client.wait_for_result()
+
 class objectPositions():
 
     objects = np.array([1, 4, 3, 2])
@@ -64,6 +92,9 @@ class Grasping(object):
         self.find_client = actionlib.SimpleActionClient(find_objects, FindGraspableObjectsAction)
         self.find_client.wait_for_server()
 
+    def intermediateArmPos(self, x, y, z):
+
+
 
     def pickup(self, block, grasps):
 
@@ -75,7 +106,7 @@ class Grasping(object):
     #swaps two blocks positions.
     def swapBlockPos(self, block1Pos, block2Pos):
         #intermediate point for movement
-        posIntermediate = np.array([0.8,0.35])
+        posIntermediate = np.array([0.67,0])
 
 
         # Get block to pick
@@ -92,6 +123,7 @@ class Grasping(object):
                 break
             rospy.logwarn("Grasping failed.")
 
+        #self.tuck()
 
         # Place the block
         while not rospy.is_shutdown():
@@ -146,7 +178,7 @@ class Grasping(object):
                 break
             rospy.logwarn("Grasping failed.")
 
-        self.tuck()
+        #self.tuck()
 
         while not rospy.is_shutdown():
             rospy.loginfo("Placing object...")
@@ -266,6 +298,25 @@ class Grasping(object):
         # nothing detected
         return None, None
     
+    def armForward(self, x, y, z):
+        
+        #new pose_stamped of the end effector that moves the arm out of the way of the vision for planning.
+        intermediatePose = PoseStamped()
+
+        #position
+        intermediatePose.pose.position.x = x
+        intermediatePose.pose.position.y = y
+        intermediatePose.pose.position.z = z
+
+        #quaternion for the end position
+
+
+        while not rospy.is_shutdown():
+            result = self.move_group.moveToPose()
+            if result.error_code.val == MoveItErrorCodes.SUCCESS:
+                return
+
+
     def tuck(self):
         joints = ["shoulder_pan_joint", "shoulder_lift_joint", "upperarm_roll_joint",
                   "elbow_flex_joint", "forearm_roll_joint", "wrist_flex_joint", "wrist_roll_joint"]
@@ -321,9 +372,13 @@ if __name__ == "__main__":
     rospy.loginfo("Beginning manipulation...")
 
 
-    head_action.look_at(0.8, 0, 0.43, "map")
+    head_action.look_at(0.75, 0, 0.43, "map")
     #grasping_class.swapBlockPos(posPlaces[0], posPlaces[2])
     rospy.loginfo("ForLoop Doesnt Work")
+
+    torso_action = FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
+
+    torso_action.move_to([0.1, ])
 
     for x in symbolicPlanner.commands:
         rospy.loginfo("forloopworks")
@@ -342,6 +397,7 @@ if __name__ == "__main__":
             y = objectPos.objects[objectPos.posOfObject(int(temp[1]))]
             objectPos.objects[objectPos.posOfObject(int(temp[1]))] = objectPos.objects[objectPos.posOfObject(int(temp[2]))]
             objectPos.objects[objectPos.posOfObject(int(temp[2]))] = y
+            grasping_class.tuck()
         #elif "place" in x:
             #grasping_class.place()
         #elif "pick-up" in x:

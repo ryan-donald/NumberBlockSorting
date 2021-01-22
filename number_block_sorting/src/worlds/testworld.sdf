@@ -10,7 +10,12 @@
     <include>
       <uri>model://cafe_table</uri>
       <name>table1</name>
-      <pose>1 0 -0.3 0 0 1.57</pose>
+      <pose>1 0.458 -0.3 0 0 1.57</pose>
+    </include>
+    <include>
+      <uri>model://cafe_table</uri>
+      <name>table2</name>
+      <pose>1 -0.458 -0.3 0 0 1.57</pose>
     </include>
     <include>
       <uri>model://demo_cube</uri>
@@ -24,12 +29,12 @@
     </include>
     <include>
       <uri>model://cube1</uri>
-      <name>cube2</name>
+      <name>cube3</name>
       <pose>0.8 -0.25 0.53 0 0 0</pose>
     </include>
     <include>
       <uri>model://cube1</uri>
-      <name>cube2</name>
+      <name>cube4</name>
       <pose>0.8 0.25 0.53 0 0 0</pose>
     </include>
   </world>
