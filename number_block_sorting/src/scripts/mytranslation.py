@@ -92,9 +92,6 @@ class Grasping(object):
         self.find_client = actionlib.SimpleActionClient(find_objects, FindGraspableObjectsAction)
         self.find_client.wait_for_server()
 
-    def intermediateArmPos(self, x, y, z):
-
-
 
     def pickup(self, block, grasps):
 
@@ -108,6 +105,11 @@ class Grasping(object):
         #intermediate point for movement
         posIntermediate = np.array([0.67,0])
 
+        print("\n\n\n\n")
+        print(block1Pos)
+        print("\n")
+        print(block2Pos)
+        print("\n\n\n\n")
 
         # Get block to pick
         while not rospy.is_shutdown():
@@ -137,7 +139,7 @@ class Grasping(object):
             rospy.logwarn("Placing failed.")
         
         #place block 2 in block 1's
-        self.tuck()
+        self.armIntermediatePose()
          # Get block to pick
         while not rospy.is_shutdown():
             rospy.loginfo("Picking object...")
@@ -163,7 +165,7 @@ class Grasping(object):
             rospy.logwarn("Placing failed.")
 
         #place block1 in block 2's spot
-        self.tuck()
+        self.armIntermediatePose()
         
         while not rospy.is_shutdown():
             rospy.loginfo("Picking object...")
@@ -303,6 +305,8 @@ class Grasping(object):
         #new pose_stamped of the end effector that moves the arm out of the way of the vision for planning.
         intermediatePose = PoseStamped()
 
+        intermediatePose.header.frame_id = 'base_link'
+
         #position
         intermediatePose.pose.position.x = x
         intermediatePose.pose.position.y = y
@@ -310,12 +314,18 @@ class Grasping(object):
 
         #quaternion for the end position
 
+        intermediatePose.pose.orientation.w = 1
+
 
         while not rospy.is_shutdown():
-            result = self.move_group.moveToPose()
+            result = self.move_group.moveToPose(intermediatePose,"wrist_roll_link")
             if result.error_code.val == MoveItErrorCodes.SUCCESS:
                 return
 
+    def armIntermediatePose(self):
+
+        self.armForward(0.1,-0.7,0.9)
+        
 
     def tuck(self):
         joints = ["shoulder_pan_joint", "shoulder_lift_joint", "upperarm_roll_joint",
@@ -371,9 +381,13 @@ if __name__ == "__main__":
 
     rospy.loginfo("Beginning manipulation...")
 
+    
+
 
     head_action.look_at(0.75, 0, 0.43, "map")
     #grasping_class.swapBlockPos(posPlaces[0], posPlaces[2])
+
+
     rospy.loginfo("ForLoop Doesnt Work")
 
     torso_action = FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
@@ -391,13 +405,21 @@ if __name__ == "__main__":
         print(temp)
         print("\n\n\n\n")
         if temp[0] == "sort":
+            print("\n\n\n\n")
+            print(temp[1])
+            print("\n")
+            print(temp[2])
+            print("\n")
+            print(objectPos.objects)
+            print("\n\n\n\n")
+            
             grasping_class.swapBlockPos(
                 posPlaces[objectPos.posOfObject(int(temp[1]))],
                 posPlaces[objectPos.posOfObject(int(temp[2]))])
             y = objectPos.objects[objectPos.posOfObject(int(temp[1]))]
             objectPos.objects[objectPos.posOfObject(int(temp[1]))] = objectPos.objects[objectPos.posOfObject(int(temp[2]))]
             objectPos.objects[objectPos.posOfObject(int(temp[2]))] = y
-            grasping_class.tuck()
+            grasping_class.armIntermediatePose()
         #elif "place" in x:
             #grasping_class.place()
         #elif "pick-up" in x:
