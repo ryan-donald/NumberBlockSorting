@@ -106,7 +106,7 @@ class Grasping(object):
         posIntermediate = np.array([0.7,0])
         
         self.armIntermediatePose()
-        
+
         print("\n\n\n\n")
         print(block1Pos)
         print("\n")
@@ -364,17 +364,6 @@ if __name__ == "__main__":
 
     symbolicPlanner.InterpretSolution()
 
-    #for loop for interpretation of pyperplan solution
-    #for x in symbolicPlanner.commands:
-    #    if "place" in symbolicPlanner.commands:
-    #
-    #        #place block in hand
-    #    elif "pick-up" in symbolicPlanner.commands:
-    #        #pickup block specified
-    #    elif "sort" in symbolicPlanner.commands:
-    #        #sort the two blocks, destination zone in the left of the block
-
-
     #FROM DEMO.PY
     torso_action = demo.FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
     rospy.loginfo("FollowTrajectoryClient Class Initialized")
@@ -386,16 +375,13 @@ if __name__ == "__main__":
     
 
 
-    head_action.look_at(0.75, 0, 0.43, "map")
+    head_action.look_at(0.65, 0, 0.43, "map")
     #grasping_class.swapBlockPos(posPlaces[0], posPlaces[2])
-
-
-    rospy.loginfo("ForLoop Doesnt Work")
 
     torso_action = FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
 
     grasping_class.armIntermediatePose()
-    grasping_class.swapBlockPos(posPlaces[0],posPlaces[2])
+    #grasping_class.swapBlockPos(posPlaces[0],posPlaces[2])
 
     for x in symbolicPlanner.commands:
         rospy.loginfo("forloopworks")
@@ -416,12 +402,17 @@ if __name__ == "__main__":
             print(objectPos.objects)
             print("\n\n\n\n")
             
+            #calls swapBlockPos on the two positions of the specified blocks in from the pyperplan solution. Eg: block 2 and block 4
             grasping_class.swapBlockPos(
                 posPlaces[objectPos.posOfObject(int(temp[1]))],
                 posPlaces[objectPos.posOfObject(int(temp[2]))])
+
+            #Swaps the positions in the code of the two blocks that were just swapped.
             y = objectPos.objects[objectPos.posOfObject(int(temp[1]))]
             objectPos.objects[objectPos.posOfObject(int(temp[1]))] = objectPos.objects[objectPos.posOfObject(int(temp[2]))]
             objectPos.objects[objectPos.posOfObject(int(temp[2]))] = y
+
+            #returns the arm to the intermediate pose.
             grasping_class.armIntermediatePose()
         #elif "place" in x:
             #grasping_class.place()
