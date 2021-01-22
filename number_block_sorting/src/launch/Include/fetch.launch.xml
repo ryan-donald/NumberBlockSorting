@@ -17,13 +17,13 @@
   <!-- Put a robot in gazebo, make it look pretty -->
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
         args="-urdf -x $(arg x) -y $(arg y) -z $(arg z) -Y $(arg yaw) -model fetch -param robot_description
-              -J shoulder_pan_joint 1.32
-              -J shoulder_lift_joint 1.40
-              -J upperarm_roll_joint -0.2
-              -J elbow_flex_joint 1.72
-              -J forearm_roll_joint 0.0
-              -J wrist_flex_joint 1.66
-              -J wrist_roll_joint 0.0"/>
+              -J shoulder_pan_joint -1.33
+              -J shoulder_lift_joint -0.26
+              -J upperarm_roll_joint -1.08
+              -J elbow_flex_joint 0.98
+              -J forearm_roll_joint 2.47
+              -J wrist_flex_joint 2.16
+              -J wrist_roll_joint -1.87"/>
   <node name="prepare_robot" pkg="number_block_sorting" type="prepare_simulated_robot.py" />
 
   <!-- Give this robot a serial number and version -->

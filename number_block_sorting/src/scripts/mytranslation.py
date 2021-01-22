@@ -103,8 +103,10 @@ class Grasping(object):
     #swaps two blocks positions.
     def swapBlockPos(self, block1Pos, block2Pos):
         #intermediate point for movement
-        posIntermediate = np.array([0.67,0])
-
+        posIntermediate = np.array([0.7,0])
+        
+        self.armIntermediatePose()
+        
         print("\n\n\n\n")
         print(block1Pos)
         print("\n")
@@ -126,8 +128,7 @@ class Grasping(object):
             rospy.logwarn("Grasping failed.")
 
         #self.tuck()
-
-        # Place the block
+        #Place the block
         while not rospy.is_shutdown():
             rospy.loginfo("Placing object...")
             pose = PoseStamped()
@@ -181,6 +182,7 @@ class Grasping(object):
             rospy.logwarn("Grasping failed.")
 
         #self.tuck()
+        self.armIntermediatePose()
 
         while not rospy.is_shutdown():
             rospy.loginfo("Placing object...")
@@ -221,7 +223,7 @@ class Grasping(object):
 
     #FROM DEMO.PY TO BE REPLACED
     def updateScene(self):
-        # find objects
+        # find objectsw
         goal = FindGraspableObjectsGoal()
         goal.plan_grasps = True
         self.find_client.send_goal(goal)
@@ -345,10 +347,10 @@ if __name__ == "__main__":
     posY = np.array([[0.2, 0.3], [0.05, 0.15], [-0.15,-0.05], [-0.3,-0.2]])
 
     #intermediate point for movement
-    posIntermediate = np.array([0.7,0.0])
+    posIntermediate = np.array([0.6,0.0])
 
     #array that contains the possible positions of the blocks, to be replaced with vision defined spots
-    posPlaces = np.array([[0.8, 0.25], [0.8,0.075], [0.8,-0.075], [0.8,-0.25]])
+    posPlaces = np.array([[0.6, 0.25], [0.6,0.075], [0.6,-0.075], [0.6,-0.25]])
 
     currentPos = np.array([[]])
 
@@ -392,7 +394,8 @@ if __name__ == "__main__":
 
     torso_action = FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
 
-    torso_action.move_to([0.1, ])
+    grasping_class.armIntermediatePose()
+    grasping_class.swapBlockPos(posPlaces[0],posPlaces[2])
 
     for x in symbolicPlanner.commands:
         rospy.loginfo("forloopworks")
