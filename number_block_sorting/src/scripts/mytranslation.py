@@ -103,7 +103,7 @@ class Grasping(object):
     #swaps two blocks positions.
     def swapBlockPos(self, block1Pos, block2Pos):
         #intermediate point for movement
-        posIntermediate = np.array([0.7,0])
+        posIntermediate = np.array([0.75,0])
         
         self.armIntermediatePose()
 
@@ -209,6 +209,12 @@ class Grasping(object):
         
 
         places.append(copy.deepcopy(l))
+
+        success = self.pickplace.place_with_retry(block.name, places, scene = self.scene)
+
+        return success
+
+
         ## create another several places, rotate each by 360/m degrees in yaw direction
         m = 16 # number of possible place poses
         pi = 3.141592653589

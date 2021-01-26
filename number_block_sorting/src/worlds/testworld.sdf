@@ -28,12 +28,12 @@
       <pose>0.6 0.075 0.53 0 0 0</pose>
     </include>
     <include>
-      <uri>model://cube1</uri>
+      <uri>model://cubeG</uri>
       <name>cube3</name>
       <pose>0.6 -0.25 0.53 0 0 0</pose>
     </include>
     <include>
-      <uri>model://cube1</uri>
+      <uri>model://cubeY</uri>
       <name>cube4</name>
       <pose>0.6 0.25 0.53 0 0 0</pose>
     </include>
