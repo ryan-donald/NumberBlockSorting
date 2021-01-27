@@ -103,7 +103,10 @@ class Grasping(object):
     #swaps two blocks positions.
     def swapBlockPos(self, block1Pos, block2Pos):
         #intermediate point for movement
-        posIntermediate = np.array([0.75,0])
+
+        self.armIntermediatePose()
+
+        posIntermediate = np.array([0.725,0])
         
         self.armIntermediatePose()
 
@@ -194,6 +197,8 @@ class Grasping(object):
                 break
             rospy.logwarn("Placing failed.")
 
+        return
+
     def place(self, block, pose_stamped, placePos):
         places = list()
         l = PlaceLocation()
@@ -210,9 +215,9 @@ class Grasping(object):
 
         places.append(copy.deepcopy(l))
 
-        success = self.pickplace.place_with_retry(block.name, places, scene = self.scene)
+        #success = self.pickplace.place_with_retry(block.name, places, scene = self.scene)
 
-        return success
+        #return success
 
 
         ## create another several places, rotate each by 360/m degrees in yaw direction
@@ -396,17 +401,8 @@ if __name__ == "__main__":
         temp = x.replace("(","")
         temp = temp.replace(")","")
         temp = temp.split()
-        print("\n\n\n\n")
-        print(temp)
-        print("\n\n\n\n")
         if temp[0] == "sort":
-            print("\n\n\n\n")
-            print(temp[1])
-            print("\n")
-            print(temp[2])
-            print("\n")
-            print(objectPos.objects)
-            print("\n\n\n\n")
+            
             
             #calls swapBlockPos on the two positions of the specified blocks in from the pyperplan solution. Eg: block 2 and block 4
             grasping_class.swapBlockPos(
@@ -419,7 +415,7 @@ if __name__ == "__main__":
             objectPos.objects[objectPos.posOfObject(int(temp[2]))] = y
 
             #returns the arm to the intermediate pose.
-            grasping_class.armIntermediatePose()
+            #grasping_class.armIntermediatePose()
         #elif "place" in x:
             #grasping_class.place()
         #elif "pick-up" in x:
