@@ -60,7 +60,7 @@ class objectPositions():
     objects = np.array([1, 4, 3, 2])
     def objectInPos(self, testPos, testValue):
 
-        if objects[testPos] == testValue:
+        if self.objects[testPos] == testValue:
             return True
         else:
             return False
