@@ -389,19 +389,15 @@ if __name__ == "__main__":
 
     
 
-
+    #used to position the robots vision camera in a fixed position that can accurately view the entire workspace.
     head_action.look_at(0.65, 0, 0.43, "map")
-    #grasping_class.swapBlockPos(posPlaces[0], posPlaces[2])
 
     torso_action = FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
 
     grasping_class.armIntermediatePose()
-    #grasping_class.swapBlockPos(posPlaces[0],posPlaces[2])
 
     for x in symbolicPlanner.commands:
         rospy.loginfo("forloopworks")
-        #temp = re.findall(r'\d+', x)
-        #num = list(map(int, temp))
         temp = x.replace("(","")
         temp = temp.replace(")","")
         temp = temp.split()
