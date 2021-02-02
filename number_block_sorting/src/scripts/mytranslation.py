@@ -55,9 +55,14 @@ class FollowTrajectoryClient(object):
         self.client.send_goal(follow_goal)
         self.client.wait_for_result()
 
+# Class for internal storage of the objects positions at a current time. This will be automatically filled by the vision system. This allows for the robot to know what position a 
+# block is in to grab that specific block for the manipulation actions from the pyperplan solution.
 class objectPositions():
 
+    # array for storage of the blocks. The values refer to the block, and the index refers to the position in line, left to right, on the table.
     objects = np.array([1, 4, 3, 2])
+
+    # returns what object is in the given position.
     def objectInPos(self, testPos, testValue):
 
         if self.objects[testPos] == testValue:
@@ -65,10 +70,12 @@ class objectPositions():
         else:
             return False
 
+    # function to load the objects array from vision.
     def storeObjects(self, objects):
         self.objects = np.copy(objects)
         self.objects.append([0])
 
+    # returns the index of a specified value.
     def posOfObject(self, num):
         idx = 0
         for x in self.objects:
@@ -79,8 +86,6 @@ class objectPositions():
             
 
 class Grasping(object):
-
-
 
     def __init__(self):
         self.pickplace = PickPlaceInterface("arm", "gripper", verbose=True)
@@ -106,15 +111,10 @@ class Grasping(object):
 
         self.armIntermediatePose()
 
+        #intermediate positon on the table, used for short term storage of the first block manipulated in the sorting.
         posIntermediate = np.array([0.725,0])
         
         self.armIntermediatePose()
-
-        print("\n\n\n\n")
-        print(block1Pos)
-        print("\n")
-        print(block2Pos)
-        print("\n\n\n\n")
 
         # Get block to pick
         while not rospy.is_shutdown():
@@ -200,6 +200,9 @@ class Grasping(object):
         return
 
     def place(self, block, pose_stamped, placePos):
+
+        #creates a list of place positons for the block, with a specified x, y, and z.
+
         places = list()
         l = PlaceLocation()
         l.place_pose.pose = pose_stamped.pose
@@ -209,6 +212,7 @@ class Grasping(object):
         l.pre_place_approach = self.pick_result.grasp.pre_grasp_approach
         l.post_place_retreat = self.pick_result.grasp.post_grasp_retreat
 
+        #this x and y value are input as placePos through the function call.
         l.place_pose.pose.position.x = placePos[0]
         l.place_pose.pose.position.y = placePos[1]
         
