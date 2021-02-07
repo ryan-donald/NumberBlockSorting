@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/rawImage.jpg')
+rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/2021-02-05-170036.jpg')
 cv2.imshow('Original Image', rawImage)
 cv2.waitKey(0)
 
