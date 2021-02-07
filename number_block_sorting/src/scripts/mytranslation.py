@@ -26,6 +26,25 @@ from control_msgs.msg import PointHeadAction, PointHeadGoal
 from grasping_msgs.msg import FindGraspableObjectsAction, FindGraspableObjectsGoal
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
+
+
+class vision(self):
+
+    def objectLocation(self, objectPhoto):
+
+        #using the color masks, calculate the average location from the camera of the points for tbe specified color
+
+
+        #return the average point
+
+    def findObjects(self, image):
+
+        #using the supplied image, find each object in the image, and the color of the object. Using this information, store the objects in the objectPositions class.
+
+        #return nothing
+
+    
+
 #class used to store the current positions of the objects. Used in sorting to check if there is an object in the wanted position.
 
 # Send a trajectory to controller
