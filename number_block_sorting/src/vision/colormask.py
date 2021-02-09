@@ -10,6 +10,8 @@ rawImage2 = rawImage.copy()
 cv2.imshow('Original Image', rawImage)
 cv2.waitKey(0)
 
+kernel = np.ones((5,5),np.uint8)
+
 ih, iw, ic = rawImage.shape
 icx = iw/2
 icy = iw/2
@@ -67,15 +69,20 @@ totalMask = cv2.bitwise_or(greenMask, yellowMask)
 totalMask = cv2.bitwise_or(totalMask, redMask3)
 totalMask = cv2.bitwise_or(totalMask, pinkMask)
 
+temp = cv2.morphologyEx(pinkMask, cv2.MORPH_OPEN, kernel)
+cv2.imshow("pinkmask erosion", temp)
+
 #yellowMaskMedian = cv2.medianBlur(yellowMask, 5)
 #redMaskMedian = cv2.medianBlur(redMask3, 5)
 #greenMaskMedian = cv2.medianBlur(greenMask)
 colors = np.array(["yellow", "green", "red", "pink"])
 maskArray = np.array([yellowMask, greenMask, redMask3, pinkMask])
 centers = np.array([["yellow", 0, 0], ["green", 0, 0], ["red", 0, 0], ["pink", 0, 0]])
+cv2.waitKey(0)
 idx = 0
 for mask in maskArray:
-    contoursMask, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    temp = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    contoursMask, hierarchy = cv2.findContours(temp, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     for contour in contoursMask:
         area = cv2.contourArea(contour)
         if area > 150:
