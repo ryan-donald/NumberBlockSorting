@@ -10,6 +10,10 @@ rawImage2 = rawImage.copy()
 cv2.imshow('Original Image', rawImage)
 cv2.waitKey(0)
 
+ih, iw, ic = rawImage.shape
+icx = iw/2
+icy = iw/2
+
 hsv = cv2.cvtColor(rawImage, cv2.COLOR_BGR2HSV)
 cv2.imshow('HSV Image',hsv)
 cv2.waitKey(0)
@@ -18,8 +22,8 @@ hsvMedianBlur = cv2.medianBlur(hsv, 5)
 #color masks
 
 #green
-low_green = np.array([40,40,40])
-high_green = np.array([70,255,255])
+low_green = np.array([35,40,40])
+high_green = np.array([80,255,255])
 greenMask = cv2.inRange(hsvMedianBlur, low_green, high_green)
 
 #red
@@ -39,6 +43,18 @@ yellowMask = cv2.inRange(hsvMedianBlur, low_yellow, high_yellow)
 
 redMask3 = cv2.bitwise_or(redMask, redMask2)
 
+contoursY, hierarchy = cv2.findContours(yellowMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+#idx = 1
+#for contour in contoursY:
+#    x,y,w,h = cv2.boundingRect(contour)
+#    cv2.rectangle(yellowMask, (x, y), (x+w, y+h), (255,0,255), 2)
+#    print("Yellow Object ", idx, ": x : ", x, " y: ", y, " w: ", w, " h: ", h)
+#    cx = x + (w/2)
+#    cy = y + (h/2) 
+#    print("center: (", cx,",", cy,")" )
+#    idx = idx + 1
+
 
 #pink
 
@@ -54,6 +70,27 @@ totalMask = cv2.bitwise_or(totalMask, pinkMask)
 #yellowMaskMedian = cv2.medianBlur(yellowMask, 5)
 #redMaskMedian = cv2.medianBlur(redMask3, 5)
 #greenMaskMedian = cv2.medianBlur(greenMask)
+colors = np.array(["yellow", "green", "red", "pink"])
+maskArray = np.array([yellowMask, greenMask, redMask3, pinkMask])
+centers = np.array([["yellow", 0, 0], ["green", 0, 0], ["red", 0, 0], ["pink", 0, 0]])
+idx = 0
+for mask in maskArray:
+    contoursMask, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    for contour in contoursMask:
+        area = cv2.contourArea(contour)
+        if area > 150:
+            x,y,w,h = cv2.boundingRect(contour)
+            cv2.rectangle(mask, (x, y), (x+w, y+h), (255,0,255), 2)
+            cx = x + (w/2)
+            cy = y + (h/2)
+            print(colors[idx])
+            print(cx, cy)
+            print(cx - icx, cy - icy)
+            centers[idx][1] = int(cx)
+            centers[idx][2] = int(cy)
+    idx = idx + 1
+
+print(centers)
 
 cv2.imshow("Green Mask", greenMask)
 #cv2.imshow("Red Mask", redMask)
@@ -94,8 +131,13 @@ for contour in contours2:
     area = cv2.contourArea(contour)
     if area > 100 :
         contour_list2.append(contour)
-cv2.drawContours(rawImage2, contour_list2, -1, (0,255,0), 2)
-cv2.imshow('Contours 2', rawImage2)
+#cv2.drawContours(rawImage2, contour_list2, -1, (0,255,0), 2)
+#cv2.imshow('Contours 2', rawImage2)
+
+#for contour in contours:
+#    x,y,w,h = cv2.boundingRect(contour)
+#    cv2.rectangle(rawImage, (x,y), (x+w, y+h), (255,0,255),2)
+#    print("x: ", x, " y: ", y, " w: ", w, " h: ",h )
 
 cv2.drawContours(rawImage, contour_list,  -1, (255,0,0), 2)
 cv2.imshow('Objects Detected',rawImage)
