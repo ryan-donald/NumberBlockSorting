@@ -6,7 +6,7 @@ import numpy as np
 
 
 
-rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/2021-02-10-165316.jpg')
+rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/2021-02-11-163045.jpg')
 rawImage2 = rawImage.copy()
 cv2.imshow('Original Image', rawImage)
 cv2.waitKey(0)
@@ -35,13 +35,13 @@ high_red = np.array([10,255,255])
 redMask = cv2.inRange(hsvMedianBlur,low_red, high_red)
 
 
-low_red2 = np.array([171,120,111])
+low_red2 = np.array([170,180,30])
 high_red2 = np.array([180,255,255])
 redMask2 = cv2.inRange(hsvMedianBlur,low_red2, high_red2)
 
 #yellow
-low_yellow = np.array([10,100,100])
-high_yellow = np.array([30,255,255])
+low_yellow = np.array([15,80,80])
+high_yellow = np.array([35,255,255])
 yellowMask = cv2.inRange(hsvMedianBlur, low_yellow, high_yellow)
 
 redMask3 = cv2.bitwise_or(redMask, redMask2)
@@ -61,9 +61,16 @@ contoursY, hierarchy = cv2.findContours(yellowMask, cv2.RETR_TREE, cv2.CHAIN_APP
 
 #pink
 
-low_pink = np.array([150, 20, 20])
-high_pink = np.array([175, 160, 255])
-pinkMask = cv2.inRange(hsvMedianBlur, low_pink, high_pink)
+low_pink1 = np.array([160, 50, 60])
+high_pink1 = np.array([180, 170, 255])
+
+low_pink2 = np.array([0, 50, 60])
+high_pink2 = np.array([15, 170, 255])
+
+pinkMask2 = cv2.inRange(hsvMedianBlur, low_pink2, high_pink2)
+pinkMask1 = cv2.inRange(hsvMedianBlur, low_pink1, high_pink1)
+
+pinkMask = cv2.bitwise_or(pinkMask1,pinkMask2)
 
 
 totalMask = cv2.bitwise_or(greenMask, yellowMask)
@@ -152,7 +159,26 @@ for contour in contours2:
 #    x,y,w,h = cv2.boundingRect(contour)
 #    cv2.rectangle(rawImage, (x,y), (x+w, y+h), (255,0,255),2)
 #    print("x: ", x, " y: ", y, " w: ", w, " h: ",h )
+idx = 0
+objectPositions = np.array([[0,0],[0,0],[0,0],[0,0]])
+for contour in contour_list:
+    x,y,w,h = cv2.boundingRect(contour)
+    cv2.rectangle(mask, (x, y), (x+w, y+h), (255,0,255), 2)
+    cx = x + (w/2)
+    cy = y + (h/2)
+    print(colors[idx])
+    print(cx, cy)
+    print(cx - icx, cy - icy)
+    objectPositions[idx][0] = int(cx)
+    objectPositions[idx][1] = int(cy)
+    idx = idx + 1
+
+print(objectPositions)
 
 cv2.drawContours(rawImage, contour_list,  -1, (255,0,0), 2)
 cv2.imshow('Objects Detected',rawImage)
+
+#With the two arrays of object positions, it is possible to match color positions to the
+#other method of detecting objects, for a stronger and more robust position detection.
+
 cv2.waitKey(0)
