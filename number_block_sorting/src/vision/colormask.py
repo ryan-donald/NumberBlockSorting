@@ -6,7 +6,7 @@ import numpy as np
 
 
 
-rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/2021-02-10-165244.jpg')
+rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/2021-02-10-165316.jpg')
 rawImage2 = rawImage.copy()
 cv2.imshow('Original Image', rawImage)
 cv2.waitKey(0)
@@ -62,7 +62,7 @@ contoursY, hierarchy = cv2.findContours(yellowMask, cv2.RETR_TREE, cv2.CHAIN_APP
 #pink
 
 low_pink = np.array([150, 20, 20])
-high_pink = np.array([170, 255, 255])
+high_pink = np.array([175, 160, 255])
 pinkMask = cv2.inRange(hsvMedianBlur, low_pink, high_pink)
 
 
