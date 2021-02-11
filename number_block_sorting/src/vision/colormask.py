@@ -1,11 +1,12 @@
 #detection of colors in an image to detect multiple colored blocks.
+#Ryan Donald UML PeARL February 2021
 
 import cv2
 import numpy as np
 
 
 
-rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/2021-02-07-165326.jpg')
+rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/2021-02-10-165244.jpg')
 rawImage2 = rawImage.copy()
 cv2.imshow('Original Image', rawImage)
 cv2.waitKey(0)
@@ -34,7 +35,7 @@ high_red = np.array([10,255,255])
 redMask = cv2.inRange(hsvMedianBlur,low_red, high_red)
 
 
-low_red2 = np.array([170,120,111])
+low_red2 = np.array([171,120,111])
 high_red2 = np.array([180,255,255])
 redMask2 = cv2.inRange(hsvMedianBlur,low_red2, high_red2)
 
@@ -60,8 +61,8 @@ contoursY, hierarchy = cv2.findContours(yellowMask, cv2.RETR_TREE, cv2.CHAIN_APP
 
 #pink
 
-low_pink = np.array([160, 20, 150])
-high_pink = np.array([175, 130, 255])
+low_pink = np.array([150, 20, 20])
+high_pink = np.array([170, 255, 255])
 pinkMask = cv2.inRange(hsvMedianBlur, low_pink, high_pink)
 
 
@@ -69,14 +70,16 @@ totalMask = cv2.bitwise_or(greenMask, yellowMask)
 totalMask = cv2.bitwise_or(totalMask, redMask3)
 totalMask = cv2.bitwise_or(totalMask, pinkMask)
 
-temp = cv2.morphologyEx(pinkMask, cv2.MORPH_OPEN, kernel)
-cv2.imshow("pinkmask erosion", temp)
+erodedPinkMask = cv2.morphologyEx(pinkMask, cv2.MORPH_OPEN, kernel)
+erodedRedMask = cv2.morphologyEx(redMask3, cv2.MORPH_OPEN, kernel)
+erodedYellowMask = cv2.morphologyEx(yellowMask, cv2.MORPH_OPEN, kernel)
+erodedGreenMask = cv2.morphologyEx(greenMask, cv2.MORPH_OPEN, kernel)
 
 #yellowMaskMedian = cv2.medianBlur(yellowMask, 5)
 #redMaskMedian = cv2.medianBlur(redMask3, 5)
 #greenMaskMedian = cv2.medianBlur(greenMask)
 colors = np.array(["yellow", "green", "red", "pink"])
-maskArray = np.array([yellowMask, greenMask, redMask3, pinkMask])
+maskArray = np.array([erodedYellowMask, erodedGreenMask, erodedRedMask, erodedPinkMask])
 centers = np.array([["yellow", 0, 0], ["green", 0, 0], ["red", 0, 0], ["pink", 0, 0]])
 cv2.waitKey(0)
 idx = 0
@@ -99,13 +102,17 @@ for mask in maskArray:
 
 print(centers)
 
-cv2.imshow("Green Mask", greenMask)
+cv2.imshow("Green Mask", erodedGreenMask)
 #cv2.imshow("Red Mask", redMask)
-cv2.imshow("Yellow Mask", yellowMask)
+cv2.imshow("Yellow Mask", erodedYellowMask)
 #cv2.imshow("Red Mask 2", redMask2)
-cv2.imshow("Red Mask Comb", redMask3)
-cv2.imshow("Pink Mask", pinkMask)
+cv2.imshow("Red Mask Comb", erodedRedMask)
+cv2.imshow("Pink Mask", erodedPinkMask)
 cv2.imshow("totalmask", totalMask)
+
+erodedTotalMask = cv2.morphologyEx(totalMask, cv2.MORPH_OPEN, kernel)
+
+cv2.imshow("Erosion Total Mask", erodedTotalMask)
 cv2.waitKey(0)
 
 #output = cv2.bitwise_and(rawImage, rawImage, mask = greenMask)
