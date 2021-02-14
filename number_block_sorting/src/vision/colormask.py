@@ -6,10 +6,14 @@ import numpy as np
 
 
 
-rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/2021-02-11-163045.jpg')
+rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/feb12.jpg')
 rawImage2 = rawImage.copy()
 cv2.imshow('Original Image', rawImage)
 cv2.waitKey(0)
+
+deNoisedImage = cv2.fastNlMeansDenoisingColored(rawImage, None, 10 , 10)
+
+cv2.imshow('DeNoised', deNoisedImage)
 
 kernel = np.ones((5,5),np.uint8)
 
@@ -17,7 +21,7 @@ ih, iw, ic = rawImage.shape
 icx = iw/2
 icy = iw/2
 
-hsv = cv2.cvtColor(rawImage, cv2.COLOR_BGR2HSV)
+hsv = cv2.cvtColor(deNoisedImage, cv2.COLOR_BGR2HSV)
 cv2.imshow('HSV Image',hsv)
 cv2.waitKey(0)
 
@@ -30,12 +34,12 @@ high_green = np.array([80,255,255])
 greenMask = cv2.inRange(hsvMedianBlur, low_green, high_green)
 
 #red
-low_red = np.array([0,120,111])
+low_red = np.array([0, 180,30])
 high_red = np.array([10,255,255])
 redMask = cv2.inRange(hsvMedianBlur,low_red, high_red)
 
 
-low_red2 = np.array([170,180,30])
+low_red2 = np.array([150,180,30])
 high_red2 = np.array([180,255,255])
 redMask2 = cv2.inRange(hsvMedianBlur,low_red2, high_red2)
 
@@ -61,17 +65,17 @@ contoursY, hierarchy = cv2.findContours(yellowMask, cv2.RETR_TREE, cv2.CHAIN_APP
 
 #pink
 
-low_pink1 = np.array([160, 50, 60])
+low_pink1 = np.array([135, 100, 100])
 high_pink1 = np.array([180, 170, 255])
 
-low_pink2 = np.array([0, 50, 60])
-high_pink2 = np.array([15, 170, 255])
+#low_pink2 = np.array([0, 50, 60])
+#high_pink2 = np.array([15, 170, 255])
 
-pinkMask2 = cv2.inRange(hsvMedianBlur, low_pink2, high_pink2)
-pinkMask1 = cv2.inRange(hsvMedianBlur, low_pink1, high_pink1)
+#pinkMask2 = cv2.inRange(hsvMedianBlur, low_pink2, high_pink2)
+#pinkMask1 = cv2.inRange(hsvMedianBlur, low_pink1, high_pink1)
 
-pinkMask = cv2.bitwise_or(pinkMask1,pinkMask2)
-
+#pinkMask = cv2.bitwise_or(pinkMask1,pinkMask2)
+pinkMask = cv2.inRange(hsvMedianBlur, low_pink1, high_pink1)
 
 totalMask = cv2.bitwise_or(greenMask, yellowMask)
 totalMask = cv2.bitwise_or(totalMask, redMask3)
@@ -95,7 +99,7 @@ for mask in maskArray:
     contoursMask, hierarchy = cv2.findContours(temp, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     for contour in contoursMask:
         area = cv2.contourArea(contour)
-        if area > 150:
+        if area > 300:
             x,y,w,h = cv2.boundingRect(contour)
             cv2.rectangle(mask, (x, y), (x+w, y+h), (255,0,255), 2)
             cx = x + (w/2)
@@ -108,7 +112,8 @@ for mask in maskArray:
     idx = idx + 1
 
 print(centers)
-
+cv2.imshow("redmask1", redMask)
+cv2.imshow("redmask2", redMask2)
 cv2.imshow("Green Mask", erodedGreenMask)
 #cv2.imshow("Red Mask", redMask)
 cv2.imshow("Yellow Mask", erodedYellowMask)

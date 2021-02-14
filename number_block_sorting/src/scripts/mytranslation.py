@@ -28,16 +28,16 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 
 
-class vision(self):
+#class vision(self):
 
-    def objectLocation(self, objectPhoto):
+#    def objectLocation(self, objectPhoto):
 
         #using the color masks, calculate the average location from the camera of the points for tbe specified color
 
 
         #return the average point
 
-    def findObjects(self, image):
+#    def findObjects(self, image):
 
         #using the supplied image, find each object in the image, and the color of the object. Using this information, store the objects in the objectPositions class.
 
