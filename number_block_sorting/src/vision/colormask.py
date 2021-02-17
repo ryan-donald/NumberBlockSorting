@@ -1,15 +1,48 @@
 #detection of colors in an image to detect multiple colored blocks.
 #Ryan Donald UML PeARL February 2021
 
+import rospy
+from sensor_msgs.msg import Image
 import cv2
 import numpy as np
+from cv_bridge import CvBridge, CvBridgeError
 
+#ROS SUBSCRIBER FOR IMAGE
 
+rospy.init_node('ImageSubscriber', anonymous=True)
 
+rospy.loginfo("ImageSubscriber Initialized")
 rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/feb12.jpg')
+#cv2.imshow("test", rawImage)
+#cv2.waitKey(9)
+bridge = CvBridge()
+
+def show_image(img):
+    cv2.imshow("Image Window", img)
+    cv2.waitKey(1)
+
+def image_callback(img_msg):
+
+    rospy.loginfo(img_msg.header)
+
+    try:
+        cv_image = bridge.imgmsg_to_cv2(img_msg, "bgr8")
+        global rawImage 
+        rawImage = cv_image
+    except CvBridgeError:
+        rospy.logerr("CvBridge Error: {0}".format(CvBridgeError))
+
+    #cv_image = cv2.transpose(cv_image)
+    #cv_image = cv2.flip(cv_image, 1)
+
+    show_image(cv_image)
+
+sub_image = rospy.Subscriber("/head_camera/rgb/image_raw", Image, image_callback)
+cv2.waitKey(0)
+#rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/feb12.jpg')
 rawImage2 = rawImage.copy()
 cv2.imshow('Original Image', rawImage)
-cv2.waitKey(0)
+cv2.waitKey(2)
 
 deNoisedImage = cv2.fastNlMeansDenoisingColored(rawImage, None, 10 , 10)
 
@@ -50,7 +83,7 @@ yellowMask = cv2.inRange(hsvMedianBlur, low_yellow, high_yellow)
 
 redMask3 = cv2.bitwise_or(redMask, redMask2)
 
-contoursY, hierarchy = cv2.findContours(yellowMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+_, contoursY, hierarchy = cv2.findContours(yellowMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 #idx = 1
 #for contour in contoursY:
@@ -96,7 +129,7 @@ cv2.waitKey(0)
 idx = 0
 for mask in maskArray:
     temp = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    contoursMask, hierarchy = cv2.findContours(temp, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    _, contoursMask, hierarchy = cv2.findContours(temp, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     for contour in contoursMask:
         area = cv2.contourArea(contour)
         if area > 300:
@@ -141,9 +174,9 @@ retval, thresholded = cv2.threshold(saturation, 0, 255, cv2.THRESH_BINARY + cv2.
 cv2.imshow('Thresholded Image',thresholded)
 cv2.waitKey(0)
 
-contours, hierarchy = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+_, contours, hierarchy = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-contours2, hierarchy2 = cv2.findContours(totalMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+_, contours2, hierarchy2 = cv2.findContours(totalMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 contour_list = []
 for contour in contours:
