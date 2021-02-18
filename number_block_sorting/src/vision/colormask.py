@@ -3,8 +3,11 @@
 
 import rospy
 from sensor_msgs.msg import Image
+from sensor_msgs.msg import PointCloud2
+import sensor_msgs.point_cloud2 as pc2
 import cv2
 import numpy as np
+import struct
 from cv_bridge import CvBridge, CvBridgeError
 
 
@@ -20,6 +23,21 @@ rospy.loginfo("ImageSubscriber Initialized")
 #sub_image = rospy.Subscriber("/head_camera/rgb/image_raw", Image, image_callback)
 sub_image = rospy.wait_for_message("/head_camera/rgb/image_raw", Image)
 
+pointCloudBlocks = rospy.wait_for_message("/head_camera/depth_registered/points", PointCloud2)
+
+index = (264*pointCloudBlocks.row_step) + (348*pointCloudBlocks.point_step)
+
+(X, Y ,Z) = struct.unpack_from('fff', pointCloudBlocks.data, offset=index)
+
+print((X,Y,Z))
+
+#points = pc2.read_points(pointCloudBlocks, field_names = ("x", "y", "z"), skip_nans = True, uvs = [249, 235])
+
+#print(points)
+
+print(pointCloudBlocks.height)
+print(pointCloudBlocks.width)
+
 try:
     cv_image = bridge.imgmsg_to_cv2(sub_image, "bgr8")
 except CvBridgeError:
@@ -29,9 +47,11 @@ except CvBridgeError:
 #cv2.imshow("test", rawImage)
 #cv2.waitKey(9)
 rawImage = cv_image
+print(rawImage.shape)
 cv2.waitKey(0)
 #rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/feb12.jpg')
 #rawImage2 = rawImage.copy()
+
 cv2.imshow('Original Image', rawImage)
 cv2.waitKey(2)
 
