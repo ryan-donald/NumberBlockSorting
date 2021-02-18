@@ -7,40 +7,31 @@ import cv2
 import numpy as np
 from cv_bridge import CvBridge, CvBridgeError
 
-#ROS SUBSCRIBER FOR IMAGE
 
+
+bridge = CvBridge() 
+#rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/rawImage.jpg')
+
+
+#ROS SUBSCRIBER FOR A SINGLE IMAGE
 rospy.init_node('ImageSubscriber', anonymous=True)
-
 rospy.loginfo("ImageSubscriber Initialized")
-rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/feb12.jpg')
+
+#sub_image = rospy.Subscriber("/head_camera/rgb/image_raw", Image, image_callback)
+sub_image = rospy.wait_for_message("/head_camera/rgb/image_raw", Image)
+
+try:
+    cv_image = bridge.imgmsg_to_cv2(sub_image, "bgr8")
+except CvBridgeError:
+    rospy.logerr("CvBridge Error: {0}".format(CvBridgeError))
+
+
 #cv2.imshow("test", rawImage)
 #cv2.waitKey(9)
-bridge = CvBridge()
-
-def show_image(img):
-    cv2.imshow("Image Window", img)
-    cv2.waitKey(1)
-
-def image_callback(img_msg):
-
-    rospy.loginfo(img_msg.header)
-
-    try:
-        cv_image = bridge.imgmsg_to_cv2(img_msg, "bgr8")
-        global rawImage 
-        rawImage = cv_image
-    except CvBridgeError:
-        rospy.logerr("CvBridge Error: {0}".format(CvBridgeError))
-
-    #cv_image = cv2.transpose(cv_image)
-    #cv_image = cv2.flip(cv_image, 1)
-
-    show_image(cv_image)
-
-sub_image = rospy.Subscriber("/head_camera/rgb/image_raw", Image, image_callback)
+rawImage = cv_image
 cv2.waitKey(0)
 #rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/feb12.jpg')
-rawImage2 = rawImage.copy()
+#rawImage2 = rawImage.copy()
 cv2.imshow('Original Image', rawImage)
 cv2.waitKey(2)
 
