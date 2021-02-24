@@ -9,11 +9,28 @@ import cv2
 import numpy as np
 import struct
 from cv_bridge import CvBridge, CvBridgeError
-
-
+from geometry_msgs.msg import PoseStamped
+import tf2_ros
+import tf2_geometry_msgs
 
 bridge = CvBridge() 
 #rawImage = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/rawImage.jpg')
+
+def transform_pose(input_pose, from_frame, to_frame):
+
+    tf_buffer = tf2_ros.Buffer()
+    listener = tf2_ros.TransformListener(tf_buffer)
+
+    pose_stamped = tf2_geometry_msgs.PoseStamped()
+    pose_stamped.pose = input_pose
+    pose_stamped.header.frame_id = from_frame
+    pose_stamped.header.stamp = rospy.Time.now()
+
+    try:
+        output_pose_stamped = tf_buffer.transform(pose_stamped, to_frame, rospy.Duration(1))
+        return output_pose_stamped.pose
+    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+        raise
 
 
 #ROS SUBSCRIBER FOR A SINGLE IMAGE
@@ -25,11 +42,38 @@ sub_image = rospy.wait_for_message("/head_camera/rgb/image_raw", Image)
 
 pointCloudBlocks = rospy.wait_for_message("/head_camera/depth_registered/points", PointCloud2)
 
-index = (264*pointCloudBlocks.row_step) + (348*pointCloudBlocks.point_step)
+print(pointCloudBlocks.header)
+print(sub_image.header)
+print(sub_image.height)
+print(sub_image.width)
+index = (348*pointCloudBlocks.row_step) + (246*pointCloudBlocks.point_step)
 
 (X, Y ,Z) = struct.unpack_from('fff', pointCloudBlocks.data, offset=index)
 
 print((X,Y,Z))
+
+testpose = PoseStamped()
+
+testpose.pose.position.x = X
+testpose.pose.position.y = Y
+testpose.pose.position.z = Z
+tf_buffer = tf2_ros.Buffer(rospy.Duration(1200.0))
+tf_listener = tf2_ros.TransformListener(tf_buffer)
+
+transform = tf_buffer.lookup_transform("base_link", "head_camera_rgb_optical_frame", rospy.Time(0), rospy.Duration(1))
+
+pose_transformed = tf2_geometry_msgs.do_transform_pose(testpose, transform)
+
+#testest = transform_pose(testpose, "head_camera_rgb_optical_frame", "base_link")
+
+print(pose_transformed)
+
+
+#transform2 = tf_buffer.lookup_transform("map", "base_link", rospy.Time(0), rospy.Duration(1))
+
+#pose_transformed2 = tf2_geometry_msgs.do_transform_pose(pose_transformed, transform2)
+
+#print(pose_transformed2)
 
 #points = pc2.read_points(pointCloudBlocks, field_names = ("x", "y", "z"), skip_nans = True, uvs = [249, 235])
 
