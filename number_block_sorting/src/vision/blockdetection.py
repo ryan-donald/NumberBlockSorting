@@ -12,16 +12,33 @@ from sensor_msgs.msg import Image, PointCloud2
 from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import PoseStamped
 
+
+#Class for detection of objects, with multiple functions for various values
 class ObjectDetection():
 
-    def findXYZ(self, bounds, pc2Message):
 
-        index = (348*pointCloudBlocks.row_step) + (246*pointCloudBlocks.point_step)
+    def __init__(self):
+
+        self.bridge = CvBridge() 
+
+        self.rospy.init_node('ImageSubscriber', anonymous=True)
+        rospy.loginfo("ImageSubscriber Initialized")
+
+        self.sub_image = rospy.wait_for_message("/head_camera/rgb/image_raw", Image)
+        self.pointCloudBlocks = rospy.wait_for_message("/head_camera/depth_registered/points", PointCloud2)
+
+
+    #finds the X, Y, and Z coordinates from one pixel in a PointCloud2 message
+    def findXYZ(self, pixel):
+
+        index = (pixel[1]*self.pointCloudBlocks.row_step) + (pixel[0]*self.pointCloudBlocks.point_step)
         
-        (X, Y ,Z) = struct.unpack_from('fff', pointCloudBlocks.data, offset=index)
+        (X, Y ,Z) = struct.unpack_from('fff', self.pointCloudBlocks.data, offset=index)
 
         return (X, Y, Z)
 
+
+    #finds the centers of objects in an image
     def findObjects(self, openCVImage):
         
         kernel = np.ones((5,5),np.uint8)
@@ -96,18 +113,20 @@ class ObjectDetection():
             idx = idx + 1
 
         return centers
-    
-    def getImage(self):
+
+
+    #translates the Image message to a format usable by OpenCV
+    def translateImage(self):
         
-        bridge = CvBridge() 
-        sub_image = rospy.wait_for_message("/head_camera/rgb/image_raw", Image)
         try:
-            cv_image = bridge.imgmsg_to_cv2(sub_image, "bgr8")
+            cv_image = self.bridge.imgmsg_to_cv2(self.sub_image, "bgr8")
         except CvBridgeError:
             rospy.logerr("CvBridge Error: {0}".format(CvBridgeError))
         
         return cv_image
 
+
+    #transforms a pose from one pose to another pose
     def transform_pose(input_pose, from_frame, to_frame):
 
         tf_buffer = tf2_ros.Buffer()
@@ -125,10 +144,3 @@ class ObjectDetection():
             raise
 
         return output_pose_stamped
-
-
-
-
-
-
-
