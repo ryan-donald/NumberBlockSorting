@@ -16,6 +16,8 @@ from geometry_msgs.msg import PoseStamped
 #Class for detection of objects, with multiple functions for various values
 class ObjectDetection():
 
+    objectPositions = np.array([[0,0,0],[0,0,0],[0,0,0],[0,0,0]])
+
 
     def __init__(self):
 
@@ -29,14 +31,17 @@ class ObjectDetection():
 
 
     #finds the X, Y, and Z coordinates from one pixel in a PointCloud2 message
-    def findXYZ(self, pixel):
+    def findXYZ(self, pixel, w):
 
         index = (pixel[1]*self.pointCloudBlocks.row_step) + (pixel[0]*self.pointCloudBlocks.point_step)
         
         (X, Y ,Z) = struct.unpack_from('fff', self.pointCloudBlocks.data, offset=index)
 
-        return (X, Y, Z)
+        #adjusted centers of an object from the bounding rectangle:
+        Z = Z + (w/2)
 
+        return (X, Y, Z)
+        
 
     #finds the centers of objects in an image
     def findObjects(self, openCVImage):
@@ -112,8 +117,16 @@ class ObjectDetection():
                     centers[idx][2] = int(cy)
             idx = idx + 1
 
-        return centers
+        i = 0
+        for x in points:
+            (X, Y, Z) = vision_class.findXYZ(x)
+            self.objectPositions[i][0] = X
+            self.objectPositions[i][0] = Y
+            self.objectPositions[i][0] = Z
+            i = i + 1
 
+        
+        return colors, centers
 
     #translates the Image message to a format usable by OpenCV
     def translateImage(self):

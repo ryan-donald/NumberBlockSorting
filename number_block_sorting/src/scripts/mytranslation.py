@@ -11,6 +11,7 @@ import actionlib
 import numpy as np
 import pyperplantranslate as pplt
 import re
+import blockdetection as vision
 #import pyperplantranslate.py as pplt
 
 from tf.transformations import quaternion_from_euler
@@ -28,22 +29,7 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 
 
-#class vision(self):
 
-#    def objectLocation(self, objectPhoto):
-
-        #using the color masks, calculate the average location from the camera of the points for tbe specified color
-
-
-        #return the average point
-
-#    def findObjects(self, image):
-
-        #using the supplied image, find each object in the image, and the color of the object. Using this information, store the objects in the objectPositions class.
-
-        #return nothing
-
-    
 
 #class used to store the current positions of the objects. Used in sorting to check if there is an object in the wanted position.
 
@@ -80,7 +66,7 @@ class objectPositions():
 
     # array for storage of the blocks. The values refer to the block, and the index refers to the position in line, left to right, on the table.
     objects = np.array([1, 4, 3, 2])
-
+    colors = np.array("","","","")
     # returns what object is in the given position.
     def objectInPos(self, testPos, testValue):
 
@@ -390,9 +376,31 @@ if __name__ == "__main__":
 
     grasping_class = Grasping()
 
-    rospy.loginfo("Grasping Class Initialized")
-
     objectPos = objectPositions()
+
+
+    vision_class = vision.ObjectDetection()
+
+    image = vision_class.translateImage()
+
+    colors, points = vision_class.findObjects(image)
+
+    #i = 0
+    #for x in points:
+    #    (X, Y, Z) = vision_class.findXYZ(x)
+
+    #    j = 0
+    #    for x in posPlaces:
+    #        if (np.aboslute(x[0] - X) < 0.05) & (np.absolute(x[1] - Y) < 0.05):
+    #            objectPos.colors[j] = colors[i]
+    #        j = j + 1
+    #    i = i + 1
+
+
+
+
+
+    rospy.loginfo("Grasping Class Initialized")
 
     symbolicPlanner = pplt.PyperPlanTranslation()
 
@@ -414,6 +422,26 @@ if __name__ == "__main__":
     torso_action = FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
 
     grasping_class.armIntermediatePose()
+    
+
+    test1 = np.array[vision_class.objectPositions[0][0], vision_class.objectPositions[0][1]]
+        # Get block to pick
+    while not rospy.is_shutdown():
+        rospy.loginfo("Picking object...")
+        self.updateScene()
+        cube, grasps = self.getGraspableCube(test1)
+        if cube == None:
+            rospy.logwarn("Perception failed.")
+            continue
+
+        # Pick the block
+        if self.pickup(cube, grasps):
+            break
+        rospy.logwarn("Grasping failed.")
+
+
+    return
+
 
     for x in symbolicPlanner.commands:
         rospy.loginfo("forloopworks")
