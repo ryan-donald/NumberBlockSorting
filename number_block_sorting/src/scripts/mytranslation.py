@@ -12,7 +12,7 @@ import numpy as np
 import pyperplantranslate as pplt
 import re
 import blockdetection as vision
-#import pyperplantranslate.py as pplt
+#import pyperplantranslate as pplt
 
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import PoseStamped, Quaternion
@@ -66,7 +66,7 @@ class objectPositions():
 
     # array for storage of the blocks. The values refer to the block, and the index refers to the position in line, left to right, on the table.
     objects = np.array([1, 4, 3, 2])
-    colors = np.array("","","","")
+    #colors = np.array("","","","")
     # returns what object is in the given position.
     def objectInPos(self, testPos, testValue):
 
@@ -372,6 +372,11 @@ if __name__ == "__main__":
     #array that contains the possible positions of the blocks, to be replaced with vision defined spots
     posPlaces = np.array([[0.6, 0.25], [0.6,0.075], [0.6,-0.075], [0.6,-0.25]])
 
+    head_action = demo.PointHeadClient()
+    rospy.loginfo("PointHeadClient Class Initialized")
+
+    head_action.look_at(0.65, 0, 0.43, "map")
+
     currentPos = np.array([[]])
 
     grasping_class = Grasping()
@@ -409,38 +414,35 @@ if __name__ == "__main__":
     #FROM DEMO.PY
     torso_action = demo.FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
     rospy.loginfo("FollowTrajectoryClient Class Initialized")
-    head_action = demo.PointHeadClient()
-    rospy.loginfo("PointHeadClient Class Initialized")
 
     rospy.loginfo("Beginning manipulation...")
 
     
 
     #used to position the robots vision camera in a fixed position that can accurately view the entire workspace.
-    head_action.look_at(0.65, 0, 0.43, "map")
+
 
     torso_action = FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
 
     grasping_class.armIntermediatePose()
     
 
-    test1 = np.array[vision_class.objectPositions[0][0], vision_class.objectPositions[0][1]]
+    test1 = np.array([vision_class.objectPositions[0][0], vision_class.objectPositions[0][1]])
+    print(test1)
+    #test1 = (0,0)
         # Get block to pick
     while not rospy.is_shutdown():
         rospy.loginfo("Picking object...")
-        self.updateScene()
-        cube, grasps = self.getGraspableCube(test1)
+        grasping_class.updateScene()
+        cube, grasps = grasping_class.getGraspableCube(test1)
         if cube == None:
             rospy.logwarn("Perception failed.")
             continue
 
         # Pick the block
-        if self.pickup(cube, grasps):
+        if grasping_class.pickup(cube, grasps):
             break
         rospy.logwarn("Grasping failed.")
-
-
-    return
 
 
     for x in symbolicPlanner.commands:

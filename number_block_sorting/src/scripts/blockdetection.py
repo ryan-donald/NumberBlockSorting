@@ -17,28 +17,28 @@ from geometry_msgs.msg import PoseStamped
 class ObjectDetection():
 
     objectPositions = np.array([[0,0,0],[0,0,0],[0,0,0],[0,0,0]])
-
+    colors = np.array(["yellow", "green", "red", "pink"])
 
     def __init__(self):
 
         self.bridge = CvBridge() 
 
-        rospy.init_node('ImageSubscriber', anonymous=True)
-        rospy.loginfo("ImageSubscriber Initialized")
+        #rospy.init_node('ImageSubscriber', anonymous=True)
+        #rospy.loginfo("ImageSubscriber Initialized")
 
         self.sub_image = rospy.wait_for_message("/head_camera/rgb/image_raw", Image)
         self.pointCloudBlocks = rospy.wait_for_message("/head_camera/depth_registered/points", PointCloud2)
 
 
     #finds the X, Y, and Z coordinates from one pixel in a PointCloud2 message
-    def findXYZ(self, pixel, w):
+    def findXYZ(self, pixel):
 
         index = (pixel[1]*self.pointCloudBlocks.row_step) + (pixel[0]*self.pointCloudBlocks.point_step)
         
         (X, Y ,Z) = struct.unpack_from('fff', self.pointCloudBlocks.data, offset=index)
 
         #adjusted centers of an object from the bounding rectangle:
-        Z = Z + (w/2)
+        #Z = Z + (w/2)
 
         return (X, Y, Z)
         
@@ -48,10 +48,11 @@ class ObjectDetection():
         
         kernel = np.ones((5,5),np.uint8)
 
-        deNoisedImage = cv2.fastNlMeansDenoisingColored(rawImage, None, 10 , 10)
-        ih, iw, ic = rawImage.shape
+        deNoisedImage = cv2.fastNlMeansDenoisingColored(openCVImage, None, 10 , 10)
+        ih, iw, ic = openCVImage.shape
         hsv = cv2.cvtColor(deNoisedImage, cv2.COLOR_BGR2HSV)
 
+        hsvMedianBlur = cv2.medianBlur(hsv, 5)
         #color bounds
 
         #green
@@ -95,9 +96,8 @@ class ObjectDetection():
         erodedGreenMask = cv2.morphologyEx(greenMask, cv2.MORPH_OPEN, kernel)
 
         #calculation of the pixel center of each block in the image
-        colors = np.array(["yellow", "green", "red", "pink"])
         maskArray = np.array([erodedYellowMask, erodedGreenMask, erodedRedMask, erodedPinkMask])
-        centers = np.array([["yellow", 0, 0], ["green", 0, 0], ["red", 0, 0], ["pink", 0, 0]])
+        centers = np.array([["yellow", 1, 1], ["green", 1, 1], ["red", 1, 1], ["pink", 1, 1]])
         cv2.waitKey(0)
         idx = 0
         for mask in maskArray:
@@ -110,23 +110,25 @@ class ObjectDetection():
                     cv2.rectangle(mask, (x, y), (x+w, y+h), (255,0,255), 2)
                     cx = x + (w/2)
                     cy = y + (h/2)
-                    print(colors[idx])
+                    print(self.colors[idx])
                     print(cx, cy)
-                    print(cx - icx, cy - icy)
+                    #print(cx - icx, cy - icy)
                     centers[idx][1] = int(cx)
                     centers[idx][2] = int(cy)
+                    #centers[idx][3] = w
             idx = idx + 1
 
         i = 0
-        for x in points:
-            (X, Y, Z) = vision_class.findXYZ(x)
+        for x in centers:
+            test = np.array([int(x[1]), int(x[2])])
+            (X, Y, Z) = self.findXYZ(test)
             self.objectPositions[i][1] = X
             self.objectPositions[i][2] = Y
             #self.objectPositions[i][0] = Z
             i = i + 1
 
         
-        return colors, centers
+        return self.colors, centers
 
     #translates the Image message to a format usable by OpenCV
     def translateImage(self):
