@@ -377,6 +377,8 @@ if __name__ == "__main__":
 
     head_action.look_at(0.65, 0, 0.43, "map")
 
+    rospy.sleep(2)
+
     currentPos = np.array([[]])
 
     grasping_class = Grasping()
@@ -427,7 +429,9 @@ if __name__ == "__main__":
     grasping_class.armIntermediatePose()
     
 
-    test1 = np.array([vision_class.objectPositions[0][0], vision_class.objectPositions[0][1]])
+    #rospy.sleep(1)
+
+    test1 = np.array([vision_class.objectPositions[2][0], vision_class.objectPositions[2][1]])
     print(test1)
     #test1 = (0,0)
         # Get block to pick

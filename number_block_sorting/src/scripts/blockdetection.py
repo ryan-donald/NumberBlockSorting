@@ -16,15 +16,14 @@ from geometry_msgs.msg import PoseStamped
 #Class for detection of objects, with multiple functions for various values
 class ObjectDetection():
 
-    objectPositions = np.array([[0,0,0],[0,0,0],[0,0,0],[0,0,0]])
+    objectPositions = np.array([[0.0,0,0],[0,0,0],[0,0,0],[0,0,0]])
     colors = np.array(["yellow", "green", "red", "pink"])
 
     def __init__(self):
 
         self.bridge = CvBridge() 
 
-        #rospy.init_node('ImageSubscriber', anonymous=True)
-        #rospy.loginfo("ImageSubscriber Initialized")
+
 
         self.sub_image = rospy.wait_for_message("/head_camera/rgb/image_raw", Image)
         self.pointCloudBlocks = rospy.wait_for_message("/head_camera/depth_registered/points", PointCloud2)
@@ -36,6 +35,8 @@ class ObjectDetection():
         index = (pixel[1]*self.pointCloudBlocks.row_step) + (pixel[0]*self.pointCloudBlocks.point_step)
         
         (X, Y ,Z) = struct.unpack_from('fff', self.pointCloudBlocks.data, offset=index)
+
+        print(X, Y, Z)
 
         #adjusted centers of an object from the bounding rectangle:
         #Z = Z + (w/2)
@@ -97,7 +98,7 @@ class ObjectDetection():
 
         #calculation of the pixel center of each block in the image
         maskArray = np.array([erodedYellowMask, erodedGreenMask, erodedRedMask, erodedPinkMask])
-        centers = np.array([["yellow", 1, 1], ["green", 1, 1], ["red", 1, 1], ["pink", 1, 1]])
+        centers = np.array([[0, 1, 1], [1, 1, 1], [2, 1, 1], [3, 1, 1]])
         cv2.waitKey(0)
         idx = 0
         for mask in maskArray:
@@ -118,14 +119,32 @@ class ObjectDetection():
                     #centers[idx][3] = w
             idx = idx + 1
 
+        print(centers[2][1], centers[2][2])
+        (X, Y, Z) = self.findXYZ((centers[2][1], centers[2][2]))
+
+
+        prePose = PoseStamped()
+
+
+        prePose.pose.position.x = X
+        prePose.pose.position.y = Y
+        prePose.pose.position.z = Z
+
+
+        outputPose = self.transform_pose(prePose, "head_camera_rgb_optical_frame", "base_link")
+        self.objectPositions[2][0] = outputPose.pose.position.x
+        self.objectPositions[2][1] = outputPose.pose.position.y
+        print(outputPose)
+        print(self.objectPositions)
         i = 0
-        for x in centers:
-            test = np.array([int(x[1]), int(x[2])])
-            (X, Y, Z) = self.findXYZ(test)
-            self.objectPositions[i][1] = X
-            self.objectPositions[i][2] = Y
-            #self.objectPositions[i][0] = Z
-            i = i + 1
+        #for x in centers:
+        #    print(x[1], x[2])
+        #    test = np.array(x[1],x[2])
+        #    (X, Y, Z) = self.findXYZ(test)
+        #    self.objectPositions[i][0] = X
+        #    self.objectPositions[i][1] = Y
+        #    #self.objectPositions[i][0] = Z
+        #    i = i + 1
 
         
         return self.colors, centers
@@ -142,19 +161,19 @@ class ObjectDetection():
 
 
     #transforms a pose from one pose to another pose
-    def transform_pose(input_pose, from_frame, to_frame):
+    def transform_pose(self, input_pose, from_frame, to_frame):
 
         tf_buffer = tf2_ros.Buffer()
         listener = tf2_ros.TransformListener(tf_buffer)
 
         pose_stamped = tf2_geometry_msgs.PoseStamped()
-        pose_stamped.pose = input_pose
+        pose_stamped.pose = input_pose.pose
         pose_stamped.header.frame_id = from_frame
         pose_stamped.header.stamp = rospy.Time.now()
 
         try:
             output_pose_stamped = tf_buffer.transform(pose_stamped, to_frame, rospy.Duration(1))
-            return output_pose_stamped.pose
+            return output_pose_stamped
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             raise
 
