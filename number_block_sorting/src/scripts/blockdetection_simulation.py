@@ -80,7 +80,7 @@ class ObjectDetection():
         high_yellow = np.array([35,255,255])
         yellowMask = cv2.inRange(hsvMedianBlur, low_yellow, high_yellow)
 
-        #pink
+        #blue
         low_blue = np.array([90, 100, 100])
         high_blue = np.array([125, 255, 255])
         blueMask = cv2.inRange(hsvMedianBlur, low_blue, high_blue)
@@ -148,7 +148,7 @@ class ObjectDetection():
             self.objectPositions[i][1] = outputPose.pose.position.y
             self.objectPositions[i][2] = outputPose.pose.position.z
             i = i + 1
-        print("BASE_LINK POSITIONS: YELLOW, GREEN, RED, PINK")
+        print("BASE_LINK POSITIONS: YELLOW, GREEN, RED, BLUE")
         print(self.objectPositions)
         
         return self.colors, centers
@@ -173,7 +173,7 @@ class ObjectDetection():
         pose_stamped = tf2_geometry_msgs.PoseStamped()
         pose_stamped.pose = input_pose.pose
         pose_stamped.header.frame_id = from_frame
-        pose_stamped.header.stamp = rospy.Time.now()
+        pose_stamped.header.stamp = rospy.Time(0)
 
         try:
             output_pose_stamped = tf_buffer.transform(pose_stamped, to_frame, rospy.Duration(1))

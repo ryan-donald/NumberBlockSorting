@@ -14,6 +14,6 @@
     <rosparam command="load" file="$(find fetch_gazebo_demo)/config/simple_grasping.yaml" />
   </node>
 
-  <node name="translation" pkg="number_block_sorting" type="mytranslation.py" output="screen" />
+  <node name="translation_simulation" pkg="number_block_sorting" type="mytranslation_simulation.py" output="screen" />
 
 </launch>

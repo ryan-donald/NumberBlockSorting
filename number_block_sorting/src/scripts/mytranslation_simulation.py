@@ -64,7 +64,8 @@ class FollowTrajectoryClient(object):
 class objectPositions():
 
     # array for storage of the blocks. The values refer to the block, and the index refers to the position in line, left to right, on the table.
-    objects = np.array([1, 4, 3, 2])
+    #objects = np.array([1, 4, 3, 2])
+    objects = np.array([0, 0, 0, 0])
     #colors = np.array("","","","")
     # returns what object is in the given position.
     def objectInPos(self, testPos, testValue):
@@ -360,7 +361,7 @@ class Grasping(object):
 
 if __name__ == "__main__":
 
-    rospy.init_node("translation")
+    rospy.init_node("translation_simulation")
 
     #position array that contains the min and max values for the y coordinate of each position (1,2,3,4) 
     posY = np.array([[0.2, 0.3], [0.05, 0.15], [-0.15,-0.05], [-0.3,-0.2]])
@@ -428,10 +429,36 @@ if __name__ == "__main__":
     grasping_class.armIntermediatePose()
     
 
-    #rospy.sleep(1)
+    rospy.sleep(1)
+
+#####################################################
 
     test1 = np.array([vision_class.objectPositions[2][0], vision_class.objectPositions[2][1]])
+
+    detectedXY = vision_class.objectPositions
+
+    j = 0
+    for x in detectedXY:
+        i = 0
+        for y in posPlaces:
+            if (abs(x[1] - y[1]) < 0.05) and \
+               (abs(x[2] - y[0]) < 0.15):
+                objectPos.objects[i] = vision_class.objectPositions[j][0] + 1
+            i = i + 1
+        j = j + 1
+    
+    print("\n \n \n")
+    print(detectedXY)
+
+    print("\n \n \n")
+    print(objectPos.objects)
+
+    
+    print("\n \n \n")
     print(test1)
+
+    print("\n \n \n")
+
     #test1 = (0,0)
         # Get block to pick
     while not rospy.is_shutdown():
@@ -447,6 +474,9 @@ if __name__ == "__main__":
             break
         rospy.logwarn("Grasping failed.")
 
+
+
+#######################################################################################################
 
     for x in symbolicPlanner.commands:
         rospy.loginfo("forloopworks")
