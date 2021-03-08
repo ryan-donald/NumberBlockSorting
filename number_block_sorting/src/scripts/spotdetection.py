@@ -2,12 +2,16 @@ import rospy
 import numpy as np
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
+from sensor_msgs.msg import Image
 
 class spotDetection():
 
     bridge = CvBridge() 
     arucoDict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_50)
     arucoParams = cv2.aruco.DetectorParameters_create()
+
+    #array containing the corners of each space in relation to the image. Useful for calculation of the place point for MoveIT!
+    #spaces = np.array([0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0])
 
 
     def findSpaces(self, image):
@@ -51,11 +55,7 @@ class spotDetection():
                 cv2.waitKey(0)
 
 
-        #find find spaces relative to base_link
-
-        #return array with center of each space and the corners
-
-        #
+        
 
 
     def translateImage(self, rosImage):
@@ -70,8 +70,16 @@ class spotDetection():
         
 if __name__ == "__main__":
 
-    image = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/IMG_1592.jpg')
+    #image = cv2.imread('/home/ryan/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/vision/IMG_1593.jpg')
+
+    rospy.init_node('ImageSubscriber', anonymous=True)
+    rospy.loginfo("ImageSubscriber Initialized")
+
+    #sub_image = rospy.Subscriber("/head_camera/rgb/image_raw", Image, image_callback)
+    sub_image = rospy.wait_for_message("/head_camera/rgb/image_raw", Image)
 
     test = spotDetection()
 
-    test.findSpaces(image)
+    raw_image = test.translateImage(sub_image)
+
+    test.findSpaces(raw_image)

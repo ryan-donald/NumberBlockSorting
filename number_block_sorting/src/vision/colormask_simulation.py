@@ -132,7 +132,7 @@ high_red2 = np.array([180,255,255])
 redMask2 = cv2.inRange(hsvMedianBlur,low_red2, high_red2)
 
 #yellow
-low_yellow = np.array([15,80,80])
+low_yellow = np.array([15,100,100])
 high_yellow = np.array([35,255,255])
 yellowMask = cv2.inRange(hsvMedianBlur, low_yellow, high_yellow)
 
@@ -153,23 +153,16 @@ _, contoursY, hierarchy = cv2.findContours(yellowMask, cv2.RETR_TREE, cv2.CHAIN_
 
 #pink
 
-low_pink1 = np.array([135, 100, 100])
-high_pink1 = np.array([180, 170, 255])
+low_blue = np.array([90, 100, 100])
+high_blue = np.array([125, 255, 255])
 
-#low_pink2 = np.array([0, 50, 60])
-#high_pink2 = np.array([15, 170, 255])
-
-#pinkMask2 = cv2.inRange(hsvMedianBlur, low_pink2, high_pink2)
-#pinkMask1 = cv2.inRange(hsvMedianBlur, low_pink1, high_pink1)
-
-#pinkMask = cv2.bitwise_or(pinkMask1,pinkMask2)
-pinkMask = cv2.inRange(hsvMedianBlur, low_pink1, high_pink1)
+blueMask = cv2.inRange(hsvMedianBlur, low_blue, high_blue)
 
 totalMask = cv2.bitwise_or(greenMask, yellowMask)
 totalMask = cv2.bitwise_or(totalMask, redMask3)
-totalMask = cv2.bitwise_or(totalMask, pinkMask)
+totalMask = cv2.bitwise_or(totalMask, blueMask)
 
-erodedPinkMask = cv2.morphologyEx(pinkMask, cv2.MORPH_OPEN, kernel)
+erodedBlueMask = cv2.morphologyEx(blueMask, cv2.MORPH_OPEN, kernel)
 erodedRedMask = cv2.morphologyEx(redMask3, cv2.MORPH_OPEN, kernel)
 erodedYellowMask = cv2.morphologyEx(yellowMask, cv2.MORPH_OPEN, kernel)
 erodedGreenMask = cv2.morphologyEx(greenMask, cv2.MORPH_OPEN, kernel)
@@ -177,9 +170,8 @@ erodedGreenMask = cv2.morphologyEx(greenMask, cv2.MORPH_OPEN, kernel)
 #yellowMaskMedian = cv2.medianBlur(yellowMask, 5)
 #redMaskMedian = cv2.medianBlur(redMask3, 5)
 #greenMaskMedian = cv2.medianBlur(greenMask)
-colors = np.array(["yellow", "green", "red", "pink"])
-maskArray = np.array([erodedYellowMask, erodedGreenMask, erodedRedMask, erodedPinkMask])
-#The first digit in each array corresponds to the index of a color in the above arrays
+colors = np.array(["yellow", "green", "red", "blue"])
+maskArray = np.array([erodedYellowMask, erodedGreenMask, erodedRedMask, erodedBlueMask])
 centers = np.array([[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0]])
 cv2.waitKey(0)
 idx = 0
@@ -208,71 +200,10 @@ cv2.imshow("Green Mask", erodedGreenMask)
 cv2.imshow("Yellow Mask", erodedYellowMask)
 #cv2.imshow("Red Mask 2", redMask2)
 cv2.imshow("Red Mask Comb", erodedRedMask)
-cv2.imshow("Pink Mask", erodedPinkMask)
+cv2.imshow("Blue Mask", erodedBlueMask)
 cv2.imshow("totalmask", totalMask)
 
 erodedTotalMask = cv2.morphologyEx(totalMask, cv2.MORPH_OPEN, kernel)
 
 cv2.imshow("Erosion Total Mask", erodedTotalMask)
-cv2.waitKey(0)
-
-#output = cv2.bitwise_and(rawImage, rawImage, mask = greenMask)
-#cv2.imshow("Green", np.hstack([rawImage, output]))
-
-#cv2.waitKey(0)
-
-
-hue ,saturation ,value = cv2.split(hsvMedianBlur)
-cv2.imshow('Saturation Image',saturation)
-cv2.waitKey(0)
-
-retval, thresholded = cv2.threshold(saturation, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-cv2.imshow('Thresholded Image',thresholded)
-cv2.waitKey(0)
-
-_, contours, hierarchy = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-_, contours2, hierarchy2 = cv2.findContours(totalMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-contour_list = []
-for contour in contours:
-    area = cv2.contourArea(contour)
-    if area > 100 :
-        contour_list.append(contour)
-
-contour_list2 = []
-
-for contour in contours2:
-    area = cv2.contourArea(contour)
-    if area > 100 :
-        contour_list2.append(contour)
-#cv2.drawContours(rawImage2, contour_list2, -1, (0,255,0), 2)
-#cv2.imshow('Contours 2', rawImage2)
-
-#for contour in contours:
-#    x,y,w,h = cv2.boundingRect(contour)
-#    cv2.rectangle(rawImage, (x,y), (x+w, y+h), (255,0,255),2)
-#    print("x: ", x, " y: ", y, " w: ", w, " h: ",h )
-idx = 0
-objectPositions = np.array([[0,0],[0,0],[0,0],[0,0]])
-for contour in contour_list:
-    x,y,w,h = cv2.boundingRect(contour)
-    cv2.rectangle(mask, (x, y), (x+w, y+h), (255,0,255), 2)
-    cx = x + (w/2)
-    cy = y + (h/2)
-    print(colors[idx])
-    print(cx, cy)
-    print(cx - icx, cy - icy)
-    objectPositions[idx][0] = int(cx)
-    objectPositions[idx][1] = int(cy)
-    idx = idx + 1
-
-print(objectPositions)
-
-cv2.drawContours(rawImage, contour_list,  -1, (255,0,0), 2)
-cv2.imshow('Objects Detected',rawImage)
-
-#With the two arrays of object positions, it is possible to match color positions to the
-#other method of detecting objects, for a stronger and more robust position detection.
-
 cv2.waitKey(0)
