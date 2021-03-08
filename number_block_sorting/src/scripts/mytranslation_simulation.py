@@ -436,14 +436,15 @@ if __name__ == "__main__":
     test1 = np.array([vision_class.objectPositions[2][0], vision_class.objectPositions[2][1]])
 
     detectedXY = vision_class.objectPositions
-
+    detectedColors = vision_class.colors
+    
     j = 0
     for x in detectedXY:
         i = 0
         for y in posPlaces:
             if (abs(x[1] - y[1]) < 0.05) and \
                (abs(x[2] - y[0]) < 0.15):
-                objectPos.objects[i] = vision_class.objectPositions[j][0] + 1
+                objectPos.objects[i] = j + 1
             i = i + 1
         j = j + 1
     
