@@ -17,7 +17,7 @@ from geometry_msgs.msg import PoseStamped
 class ObjectDetection():
 
     objectPositions = np.array([[0.0,0,0],[0,0,0],[0,0,0],[0,0,0]])
-    colors = np.array(["yellow", "green", "red", "pink"])
+    colors = np.array(["yellow", "green", "red", "blue"])
 
     def __init__(self):
 
@@ -76,28 +76,28 @@ class ObjectDetection():
         redMask3 = cv2.bitwise_or(redMask, redMask2)
 
         #yellow
-        low_yellow = np.array([15,80,80])
+        low_yellow = np.array([15,100,100])
         high_yellow = np.array([35,255,255])
         yellowMask = cv2.inRange(hsvMedianBlur, low_yellow, high_yellow)
 
         #pink
-        low_pink = np.array([135, 100, 100])
-        high_pink = np.array([180, 170, 255])
-        pinkMask = cv2.inRange(hsvMedianBlur, low_pink, high_pink)
+        low_blue = np.array([90, 100, 100])
+        high_blue = np.array([125, 255, 255])
+        blueMask = cv2.inRange(hsvMedianBlur, low_blue, high_blue)
 
         #creation of a mask with all objects.
         totalMask = cv2.bitwise_or(greenMask, yellowMask)
         totalMask = cv2.bitwise_or(totalMask, redMask3)
-        totalMask = cv2.bitwise_or(totalMask, pinkMask)
+        totalMask = cv2.bitwise_or(totalMask, blueMask)
 
         #noise reduction on each mask
-        erodedPinkMask = cv2.morphologyEx(pinkMask, cv2.MORPH_OPEN, kernel)
+        erodedBlueMask = cv2.morphologyEx(blueMask, cv2.MORPH_OPEN, kernel)
         erodedRedMask = cv2.morphologyEx(redMask3, cv2.MORPH_OPEN, kernel)
         erodedYellowMask = cv2.morphologyEx(yellowMask, cv2.MORPH_OPEN, kernel)
         erodedGreenMask = cv2.morphologyEx(greenMask, cv2.MORPH_OPEN, kernel)
 
         #calculation of the pixel center of each block in the image
-        maskArray = np.array([erodedYellowMask, erodedGreenMask, erodedRedMask, erodedPinkMask])
+        maskArray = np.array([erodedYellowMask, erodedGreenMask, erodedRedMask, erodedBlueMask])
         centers = np.array([[0, 300, 300], [1, 300, 300], [2, 300, 300], [3, 300, 300]])
         cv2.waitKey(0)
         idx = 0
