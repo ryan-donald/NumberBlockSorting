@@ -13,6 +13,23 @@ class spotDetection():
     #array containing the corners of each space in relation to the image. Useful for calculation of the place point for MoveIT!
     #spaces = np.array([0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0])
 
+    def findSpacesAR(self):
+
+        self.poseList = (rospy.wait_for_message("/ar_pose_marker", AlvarMarkers))
+
+
+
+        while true:
+            
+            arPoseMessage = rospy.wait_for_message("/ar_pose_marker", AlvarMarkers)
+
+            for x in poseList:
+                if x.id == arPoseMessage.id:
+                    continue:
+                else:
+                    poseList.append(arPoseMessage)
+
+
 
     def findSpaces(self, image):
         

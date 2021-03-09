@@ -460,22 +460,6 @@ if __name__ == "__main__":
 
     print("\n \n \n")
 
-    #test1 = (0,0)
-        # Get block to pick
-    while not rospy.is_shutdown():
-        rospy.loginfo("Picking object...")
-        grasping_class.updateScene()
-        cube, grasps = grasping_class.getGraspableCube(test1)
-        if cube == None:
-            rospy.logwarn("Perception failed.")
-            continue
-
-        # Pick the block
-        if grasping_class.pickup(cube, grasps):
-            break
-        rospy.logwarn("Grasping failed.")
-
-
 
 #######################################################################################################
 
