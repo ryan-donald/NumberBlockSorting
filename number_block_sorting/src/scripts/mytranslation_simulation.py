@@ -125,7 +125,7 @@ class Grasping(object):
         while not rospy.is_shutdown():
             rospy.loginfo("Picking object...")
             self.updateScene()
-            cube, grasps = self.getGraspableCube(block1Pos)
+            cube, grasps = self.getGraspableObject(block1Pos)
             if cube == None:
                 rospy.logwarn("Perception failed.")
                 continue
@@ -153,7 +153,7 @@ class Grasping(object):
         while not rospy.is_shutdown():
             rospy.loginfo("Picking object...")
             self.updateScene()
-            cube, grasps = self.getGraspableCube(block2Pos)
+            cube, grasps = self.getGraspableObject(block2Pos)
             if cube == None:
                 rospy.logwarn("Perception failed.")
                 continue
@@ -179,7 +179,7 @@ class Grasping(object):
         while not rospy.is_shutdown():
             rospy.loginfo("Picking object...")
             self.updateScene()
-            cube, grasps = self.getGraspableCube(posIntermediate)
+            cube, grasps = self.getGraspableObject(posIntermediate)
             if cube == None:
                 rospy.logwarn("Perception failed.")
                 continue
@@ -241,7 +241,6 @@ class Grasping(object):
                                                                 scene=self.scene)
         return success
 
-    #FROM DEMO.PY TO BE REPLACED
     def updateScene(self):
         # find objectsw
         goal = FindGraspableObjectsGoal()
@@ -295,25 +294,22 @@ class Grasping(object):
 
     def getPlaceLocation(self):
         pass
-
-
-    def getGraspableCube(self, pos):
+    
+    def getGraspableObject(self, pos)
         graspable = None
+
         for obj in self.objects:
-            # need grasps
             if len(obj.grasps) < 1:
                 continue
-            # check size
-            if obj.object.primitives[0].dimensions[0] < 0.05 or \
-               obj.object.primitives[0].dimensions[0] > 0.07 or \
-               obj.object.primitives[0].dimensions[0] < 0.05 or \
-               obj.object.primitives[0].dimensions[0] > 0.07 or \
-               obj.object.primitives[0].dimensions[0] < 0.05 or \
-               obj.object.primitives[0].dimensions[0] > 0.07:
-
+            if (obj.object.primitives[0].dimensions[0] < 0.05 or \
+                obj.object.primitives[0].dimensions[0] > 0.07 or \
+                obj.object.primitives[0].dimensions[1] < 0.05 or \
+                obj.object.primitives[0].dimensions[1] > 0.07 or \
+                obj.object.primitives[0].dimensions[2] < 0.05 or \
+                obj.object.primitives[0].dimensions[2] > 0.07 or ):
 
                 continue
-            # has to be on table
+
             if (obj.object.primitive_poses[0].position.z < 0.3) or \
                 (obj.object.primitive_poses[0].position.y > pos[1]+0.05) or \
                 (obj.object.primitive_poses[0].position.y < pos[1]-0.05) or \
@@ -321,10 +317,10 @@ class Grasping(object):
                 (obj.object.primitive_poses[0].position.x < pos[0]-0.05):
                 continue
             return obj.object, obj.grasps
-        # nothing detected
+        
         return None, None
-    
-    def armForward(self, x, y, z):
+
+    def armToXYZ(self, x, y, z):
         
         #new pose_stamped of the end effector that moves the arm out of the way of the vision for planning.
         intermediatePose = PoseStamped()
@@ -348,7 +344,7 @@ class Grasping(object):
 
     def armIntermediatePose(self):
 
-        self.armForward(0.1,-0.7,0.9)
+        self.armToXYZ(0.1,-0.7,0.9)
         
 
     def tuck(self):
@@ -359,7 +355,7 @@ class Grasping(object):
             result = self.move_group.moveToJointPosition(joints, pose, 0.02)
             if result.error_code.val == MoveItErrorCodes.SUCCESS:
                 return
-    #END FROM DEMO.PY
+
 
 if __name__ == "__main__":
 
