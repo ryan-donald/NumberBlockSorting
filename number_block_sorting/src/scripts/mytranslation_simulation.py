@@ -104,6 +104,7 @@ class Grasping(object):
 
 
     def pickup(self, block, grasps):
+        rospy.sleep(1)
 
         success, pick_result = self.pickplace.pick_with_retry(block.name, grasps, support_name=block.support_surface, scene = self.scene)
 
@@ -134,7 +135,7 @@ class Grasping(object):
             if self.pickup(cube, grasps):
                 break
             rospy.logwarn("Grasping failed.")
-
+        
         #self.tuck()
         #Place the block
         while not rospy.is_shutdown():
@@ -206,6 +207,7 @@ class Grasping(object):
 
     def place(self, block, pose_stamped, placePos):
 
+        rospy.sleep(1)
         #creates a list of place positons for the block, with a specified x, y, and z.
 
         places = list()
@@ -295,7 +297,7 @@ class Grasping(object):
     def getPlaceLocation(self):
         pass
     
-    def getGraspableObject(self, pos)
+    def getGraspableObject(self, pos):
         graspable = None
 
         for obj in self.objects:
@@ -306,7 +308,7 @@ class Grasping(object):
                 obj.object.primitives[0].dimensions[1] < 0.05 or \
                 obj.object.primitives[0].dimensions[1] > 0.07 or \
                 obj.object.primitives[0].dimensions[2] < 0.05 or \
-                obj.object.primitives[0].dimensions[2] > 0.07 or ):
+                obj.object.primitives[0].dimensions[2] > 0.07):
 
                 continue
 
@@ -321,7 +323,7 @@ class Grasping(object):
         return None, None
 
     def armToXYZ(self, x, y, z):
-        
+        rospy.sleep(1)
         #new pose_stamped of the end effector that moves the arm out of the way of the vision for planning.
         intermediatePose = PoseStamped()
 
