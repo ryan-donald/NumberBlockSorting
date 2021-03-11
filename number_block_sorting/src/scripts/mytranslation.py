@@ -392,24 +392,15 @@ if __name__ == "__main__":
 
     colors, points = vision_class.findObjects(image)
 
-    #i = 0
-    #for x in points:
-    #    (X, Y, Z) = vision_class.findXYZ(x)
-
-    #    j = 0
-    #    for x in posPlaces:
-    #        if (np.aboslute(x[0] - X) < 0.05) & (np.absolute(x[1] - Y) < 0.05):
-    #            objectPos.colors[j] = colors[i]
-    #        j = j + 1
-    #    i = i + 1
-
-
-
-
-
     rospy.loginfo("Grasping Class Initialized")
 
     symbolicPlanner = pplt.PyperPlanTranslation()
+
+    symbolicPlanner.TranslateToPDDL(objectPos.objects)
+
+    #PDDLCommand = "pyperplan -H hff -s gbf domain.pddl task01.pddl"
+
+    #p = subprocess.call(PDDLCommand)
 
     symbolicPlanner.InterpretSolution()
 

@@ -264,7 +264,8 @@ class Grasping(object):
             obj.object.name = "object%d"%idx
             self.scene.addSolidPrimitive(obj.object.name,
                                          obj.object.primitives[0],
-                                         obj.object.primitive_poses[0])
+                                         obj.object.primitive_poses[0],
+                                         use_service = False)
 
         for obj in find_result.support_surfaces:
             # extend surface to floor, and make wider since we have narrow field of view
@@ -277,7 +278,8 @@ class Grasping(object):
             # add to scene
             self.scene.addSolidPrimitive(obj.name,
                                          obj.primitives[0],
-                                         obj.primitive_poses[0])
+                                         obj.primitive_poses[0],
+                                         use_service = True)
 
         self.scene.waitForSync()
 

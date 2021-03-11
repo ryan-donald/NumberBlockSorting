@@ -46,9 +46,7 @@ class spotDetection():
                     orderedList.append(y)
 
         return orderedList
-
-
-
+        
     def findSpaces(self, image):
         
         cv2.imshow("IMAGE", image)
