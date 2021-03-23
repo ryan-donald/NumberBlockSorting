@@ -60,6 +60,37 @@ class FollowTrajectoryClient(object):
         self.client.send_goal(follow_goal)
         self.client.wait_for_result()
 
+# Class for internal storage of the objects positions at a current time. This will be automatically filled by the vision system. This allows for the robot to know what position a 
+# block is in to grab that specific block for the manipulation actions from the pyperplan solution.
+class objectPositions():
+
+    # array for storage of the blocks. The values refer to the block, and the index refers to the position in line, left to right, on the table.
+    #objects = np.array([1, 4, 3, 2])
+    objects = np.array([0, 0, 0, 0])
+    #colors = np.array("","","","")
+    # returns what object is in the given position.
+    def objectInPos(self, testPos, testValue):
+
+        if self.objects[testPos] == testValue:
+            return True
+        else:
+            return False
+
+    # function to load the objects array from vision.
+    def storeObjects(self, objects):
+        self.objects = np.copy(objects)
+        self.objects.append([0])
+
+    # returns the index of a specified value.
+    def posOfObject(self, num):
+        idx = 0
+        for x in self.objects:
+            if x == num:
+                return idx
+            
+            idx = idx + 1
+            
+
 class Grasping(object):
 
     def __init__(self):
@@ -82,7 +113,7 @@ class Grasping(object):
         return success
 
     #swaps two blocks positions.
-    def swapBlockPos(self, block1, block2Pos, vision_class):
+    def swapBlockPos(self, block1Pos, block2Pos):
         #intermediate point for movement
 
         self.armIntermediatePose()
@@ -333,6 +364,15 @@ if __name__ == "__main__":
 
     rospy.init_node("translation_simulation")
 
+    #position array that contains the min and max values for the y coordinate of each position (1,2,3,4) 
+    posY = np.array([[0.2, 0.3], [0.05, 0.15], [-0.15,-0.05], [-0.3,-0.2]])
+
+    #intermediate point for movement
+    posIntermediate = np.array([0.6,0.0])
+
+    #array that contains the possible positions of the blocks, to be replaced with vision defined spots
+    posPlaces = np.array([[0.6, 0.25], [0.6,0.075], [0.6,-0.075], [0.6,-0.25]])
+
     head_action = demo.PointHeadClient()
     rospy.loginfo("PointHeadClient Class Initialized")
 
@@ -349,26 +389,28 @@ if __name__ == "__main__":
 
     vision_class = vision.ObjectDetection()
 
-    colors, points = vision_class.findObjects()
+    image = vision_class.translateImage()
+
+    colors, points = vision_class.findObjects(image)
+
+    #i = 0
+    #for x in points:
+    #    (X, Y, Z) = vision_class.findXYZ(x)
+
+    #    j = 0
+    #    for x in posPlaces:
+    #        if (np.aboslute(x[0] - X) < 0.05) & (np.absolute(x[1] - Y) < 0.05):
+    #            objectPos.colors[j] = colors[i]
+    #        j = j + 1
+    #    i = i + 1
+
+
+
+
 
     rospy.loginfo("Grasping Class Initialized")
 
     symbolicPlanner = pplt.PyperPlanTranslation()
-
-    #COLORS:
-    #Index + 1 = number associated with object.
-    numbersPositions = np.array([1,2,3,4])
-
-    sortedPoints = np.argsort(points[:,0])
-
-    idx = 0
-    numbersPositionsCopy = np.copy(numbersPositions)
-    pointsCopy = np.copy(points)
-    for x in sortedPoints:
-        numbersPositions[idx] = numbersPositionsCopy[x]
-        idx = idx + 1
-
-    symbolicPlanner.RunPlanner(numbersPositions)
 
     #FROM DEMO.PY
     torso_action = demo.FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
@@ -384,8 +426,30 @@ if __name__ == "__main__":
     torso_action = FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
 
     grasping_class.armIntermediatePose()
+    
 
     rospy.sleep(1)
+
+#####################################################
+
+    test1 = np.array([vision_class.objectPositions[2][0], vision_class.objectPositions[2][1]])
+
+    detectedXY = vision_class.objectPositions
+    detectedColors = vision_class.colors
+    
+    j = 0
+    for x in detectedXY:
+        i = 0
+        for y in posPlaces:
+            if (abs(x[1] - y[1]) < 0.05) and \
+               (abs(x[2] - y[0]) < 0.15):
+                objectPos.objects[i] = j + 1
+            i = i + 1
+        j = j + 1
+    
+    symbolicPlanner.RunPlanner(objectPos.objects)
+
+#######################################################################################################
 
     for x in symbolicPlanner.commands:
         #rospy.loginfo("forloopworks")
@@ -394,11 +458,11 @@ if __name__ == "__main__":
         temp = temp.split()
         if temp[0] == "sort":
             
-            vision_class.findObjects()
+            
             #calls swapBlockPos on the two positions of the specified blocks in from the pyperplan solution. Eg: block 2 and block 4
-            grasping_class.swapBlockPos(np.where(vision_class.PointOf(numbersPositi2ons == temp[0][0][0])),
-                                                 vision_class.PointOf(numbersPositions == temp[1][0][0]),
-                                                 vision_class)
+            grasping_class.swapBlockPos(
+                posPlaces[objectPos.posOfObject(int(temp[1]))],
+                posPlaces[objectPos.posOfObject(int(temp[2]))])
 
             #Swaps the positions in the code of the two blocks that were just swapped.
             y = objectPos.objects[objectPos.posOfObject(int(temp[1]))]

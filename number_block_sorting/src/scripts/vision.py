@@ -1,5 +1,10 @@
-#Detection of objects in an image to detect multiple colored blocks.
-#Ryan Donald UML PeARL February 2021
+#! /usr/bind/env python
+
+#Ryan Donald
+
+#This script contains two classes, one for storage of the positions of the objects by their correlated value
+#and another class that deals with the detection of the objects in an image, then finding the (x, y, z)
+#coordinates for later manipulation
 
 import rospy
 import numpy as np
@@ -13,25 +18,52 @@ from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import PoseStamped
 
 
+
+# Class for internal storage of the objects positions at a current time. This will be automatically filled by the vision system. This allows for the robot to know what position a 
+# block is in to grab that specific block for the manipulation actions from the pyperplan solution.
+class objectPositions():
+
+    # array for storage of the blocks. The values refer to the block, and the index refers to the position in line, left to right, on the table.
+    #objects = np.array([1, 4, 3, 2])
+    objects = np.array([0, 0, 0, 0])
+    #colors = np.array("","","","")
+    # returns what object is in the given position.
+    def objectInPos(self, testPos, testValue):
+
+        if self.objects[testPos] == testValue:
+            return True
+        else:
+            return False
+
+    # function to load the objects array from vision.
+    def storeObjects(self, objects):
+        self.objects = np.copy(objects)
+        self.objects.append([0])
+
+    # returns the index of a specified value.
+    def posOfObject(self, num):
+        idx = 0
+        for x in self.objects:
+            if x == num:
+                return idx
+            
+            idx = idx + 1            
+
 #Class for detection of objects, with multiple functions for various values
 class ObjectDetection():
 
     objectPositions = np.array([[0.0,0,0],[0,0,0],[0,0,0],[0,0,0]])
-    colors = np.array(["yellow", "green", "red", "blue"])
+    colors = np.array(["yellow", "green", "red", "pink"])
 
     def __init__(self):
 
         self.bridge = CvBridge() 
 
-    def updateImage(self):
+
+
         self.sub_image = rospy.wait_for_message("/head_camera/rgb/image_raw", Image)
         self.pointCloudBlocks = rospy.wait_for_message("/head_camera/depth_registered/points", PointCloud2)
-        self.openCVImage = self.translateImage(sub_image)
 
-
-    def pointOf(self, color):
-        
-        return self.objectPositions[np.where(self.colors == color)[0][0]]
 
     #finds the X, Y, and Z coordinates from one pixel in a PointCloud2 message
     def findXYZ(self, pixelX, pixelY):
@@ -49,13 +81,12 @@ class ObjectDetection():
         
 
     #finds the centers of objects in an image
-    def findObjects(self):
-        self.updateImage()
-
+    def findObjects(self, openCVImage):
+        
         kernel = np.ones((5,5),np.uint8)
 
-        deNoisedImage = cv2.fastNlMeansDenoisingColored(self.openCVImage, None, 10 , 10)
-        ih, iw, ic = self.openCVImage.shape
+        deNoisedImage = cv2.fastNlMeansDenoisingColored(openCVImage, None, 10 , 10)
+        ih, iw, ic = openCVImage.shape
         hsv = cv2.cvtColor(deNoisedImage, cv2.COLOR_BGR2HSV)
 
         hsvMedianBlur = cv2.medianBlur(hsv, 5)
@@ -81,28 +112,28 @@ class ObjectDetection():
         redMask3 = cv2.bitwise_or(redMask, redMask2)
 
         #yellow
-        low_yellow = np.array([15,100,100])
+        low_yellow = np.array([15,80,80])
         high_yellow = np.array([35,255,255])
         yellowMask = cv2.inRange(hsvMedianBlur, low_yellow, high_yellow)
 
-        #blue
-        low_blue = np.array([90, 100, 100])
-        high_blue = np.array([125, 255, 255])
-        blueMask = cv2.inRange(hsvMedianBlur, low_blue, high_blue)
+        #pink
+        low_pink = np.array([135, 100, 100])
+        high_pink = np.array([180, 170, 255])
+        pinkMask = cv2.inRange(hsvMedianBlur, low_pink, high_pink)
 
         #creation of a mask with all objects.
         totalMask = cv2.bitwise_or(greenMask, yellowMask)
         totalMask = cv2.bitwise_or(totalMask, redMask3)
-        totalMask = cv2.bitwise_or(totalMask, blueMask)
+        totalMask = cv2.bitwise_or(totalMask, pinkMask)
 
         #noise reduction on each mask
-        erodedBlueMask = cv2.morphologyEx(blueMask, cv2.MORPH_OPEN, kernel)
+        erodedPinkMask = cv2.morphologyEx(pinkMask, cv2.MORPH_OPEN, kernel)
         erodedRedMask = cv2.morphologyEx(redMask3, cv2.MORPH_OPEN, kernel)
         erodedYellowMask = cv2.morphologyEx(yellowMask, cv2.MORPH_OPEN, kernel)
         erodedGreenMask = cv2.morphologyEx(greenMask, cv2.MORPH_OPEN, kernel)
 
         #calculation of the pixel center of each block in the image
-        maskArray = np.array([erodedYellowMask, erodedGreenMask, erodedRedMask, erodedBlueMask])
+        maskArray = np.array([erodedYellowMask, erodedGreenMask, erodedRedMask, erodedPinkMask])
         centers = np.array([[0, 300, 300], [1, 300, 300], [2, 300, 300], [3, 300, 300]])
         cv2.waitKey(0)
         idx = 0
@@ -153,10 +184,10 @@ class ObjectDetection():
             self.objectPositions[i][1] = outputPose.pose.position.y
             self.objectPositions[i][2] = outputPose.pose.position.z
             i = i + 1
-        print("BASE_LINK POSITIONS: YELLOW, GREEN, RED, BLUE")
+        print("BASE_LINK POSITIONS: YELLOW, GREEN, RED, PINK")
         print(self.objectPositions)
         
-        return self.colors, self.objectPositions
+        return self.colors, centers
 
     #translates the Image message to a format usable by OpenCV
     def translateImage(self):
@@ -178,7 +209,7 @@ class ObjectDetection():
         pose_stamped = tf2_geometry_msgs.PoseStamped()
         pose_stamped.pose = input_pose.pose
         pose_stamped.header.frame_id = from_frame
-        pose_stamped.header.stamp = rospy.Time(0)
+        pose_stamped.header.stamp = rospy.Time.now()
 
         try:
             output_pose_stamped = tf_buffer.transform(pose_stamped, to_frame, rospy.Duration(1))

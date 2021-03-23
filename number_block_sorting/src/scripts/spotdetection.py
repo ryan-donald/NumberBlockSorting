@@ -15,21 +15,14 @@ class spotDetection():
 
 
     #finds the poses for each Ar Marker representing a valid space for the block to be in.
-    def findSpacesAR(self):
+    def findARMarkerSpot(self, type):
+      
+        arMarker = rospy.wait_for_message("/ar_pose_marker", AlvarMarkers)
 
-        self.poseList = []
-
-        self.poseList.append(rospy.wait_for_message("/ar_pose_marker", AlvarMarkers))
-
-        while true:
-            
-            arPoseMessage = rospy.wait_for_message("/ar_pose_marker", AlvarMarkers)
-
-            for x in poseList:
-                if x.id == arPoseMessage.id:
-                    continue:
-                else:
-                    poseList.append(arPoseMessage)
+        if arMarker.header.frame_id == "/base_link":
+            return arMarker.pose.pose.position
+        else:
+            rospy.loginfo("ARMarker is not in frame \"/base_link\"")
     
     #ids is a list of the spot ar marker id's with an increasing value, ex. spot 1, spot 2, spot 3.
     #The last ID is the id of the intermediate position

@@ -13,9 +13,9 @@
       <pose>0.65 0 -0.3 0 0 1.57</pose>
     </include>
     <include>
-      <uri>model://cafe_table</uri>
-      <name>table2</name>
-      <pose>10 -0.458 -0.3 0 0 1.57</pose>
+      <uri>model://ARMarker0</uri>
+      <name>Spot1Marker</name>
+      <pose>0.6 -0.075 0.475 0 0 0</pose>
     </include>
     <include>
       <uri>model://demo_cube</uri>
@@ -28,14 +28,34 @@
       <pose>0.6 0.075 0.53 0 0 0</pose>
     </include>
     <include>
+      <uri>model://ARMarker0</uri>
+      <name>Spot2Marker</name>
+      <pose>0.6 0.075 0.475 0 0 0</pose>
+    </include>
+    <include>
       <uri>model://cubeG</uri>
       <name>cube3</name>
       <pose>0.6 -0.25 0.53 0 0 0</pose>
     </include>
     <include>
+      <uri>model://ARMarker0</uri>
+      <name>Spot3Marker</name>
+      <pose>0.6 -0.25 0.475 0 0 0</pose>
+    </include>
+    <include>
       <uri>model://cubeY</uri>
       <name>cube4</name>
       <pose>0.6 0.25 0.53 0 0 0</pose>
+    </include>
+    <include>
+      <uri>model://ARMarker0</uri>
+      <name>Spot1Marker</name>
+      <pose>0.6 0.25 0.475 0 0 0</pose>
+    </include>
+    <include>
+      <uri>model://ARMarker1</uri>
+      <name>IntermediateSpotMarker</name>
+      <pose>0.725 0 0.475 0 0 0</pose>
     </include>
   </world>
 </sdf>
