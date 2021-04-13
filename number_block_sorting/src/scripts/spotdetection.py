@@ -3,26 +3,34 @@ import numpy as np
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
+from ar_track_alvar_msgs.msg import AlvarMarkers
 
 class spotDetection():
 
     bridge = CvBridge() 
     arucoDict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_50)
     arucoParams = cv2.aruco.DetectorParameters_create()
-
+    
     #array containing the corners of each space in relation to the image. Useful for calculation of the place point for MoveIT!
     #spaces = np.array([0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0])
 
+    def __init__(self):
+
+        rospy.Subscriber("/ar_pose_marker", AlvarMarkers, self.ARMarker_callback, queue_size=1)
+
+
 
     #finds the poses for each Ar Marker representing a valid space for the block to be in.
-    def findARMarkerSpot(self, type):
+    def ARMarker_callback(self, data):
       
-        arMarker = rospy.wait_for_message("/ar_pose_marker", AlvarMarkers)
+        #arMarkers = rospy.wait_for_message("/ar_pose_marker", AlvarMarkers)
 
-        if arMarker.header.frame_id == "/base_link":
-            return arMarker.pose.pose.position
-        else:
-            rospy.loginfo("ARMarker is not in frame \"/base_link\"")
+        if (len(data.markers) > 0):
+            if (data.markers[0].header.frame_id == "/base_link"):
+                self.ARMarkerPosition = data.markers[0].pose.pose.position
+            else:
+                rospy.loginfo("ARMarker is not in frame \"/base_link\"")
+
     
     #ids is a list of the spot ar marker id's with an increasing value, ex. spot 1, spot 2, spot 3.
     #The last ID is the id of the intermediate position

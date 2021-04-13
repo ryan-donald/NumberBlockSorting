@@ -11,23 +11,47 @@ import sensor_msgs.point_cloud2 as pc2
 from sensor_msgs.msg import Image, PointCloud2
 from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import PoseStamped
+import rospkg
 
 
 #Class for detection of objects, with multiple functions for various values
 class ObjectDetection():
 
-    objectPositions = np.array([[0.0,0,0],[0,0,0],[0,0,0],[0,0,0]])
-    colors = np.array(["yellow", "green", "red", "pink"])
+    objectPositions = np.array([[0.0,0,0],[0.0,0,0],[0.0,0,0],[0.0,0,0]])
+    colors = np.array(["yellow", "green", "red", "blue"])
+    objectsAsNumbers = np.array([1, 2, 3, 4])
+    objects = np.array(["Bike", "Bus", "Plane", "Boat"])
 
     def __init__(self):
 
+        self.rospack = rospkg.RosPack()
         self.bridge = CvBridge() 
 
+        self.pkgPath = self.rospack.get_path('number_block_sorting')
+
+        self.hasReceivedImage = False
+        rospy.Subscriber("/head_camera/rgb/image_raw", Image, self.image_callback, queue_size=1)
+        self.hasReceivedPcl = False
+        rospy.Subscriber("/head_camera/depth_registered/points", PointCloud2, self.pcl2_callback, queue_size=2)
 
 
-        self.sub_image = rospy.wait_for_message("/head_camera/rgb/image_raw", Image)
-        self.pointCloudBlocks = rospy.wait_for_message("/head_camera/depth_registered/points", PointCloud2)
+#    def updateImage(self):
+#        self.sub_image = rospy.wait_for_message("/head_camera/rgb/image_raw", Image)
+#        self.pointCloudBlocks = rospy.wait_for_message("/head_camera/depth_registered/points", PointCloud2)
+#        self.openCVImage = self.translateImage()
 
+    def image_callback(self, data):
+
+        self.translateImage(data)
+
+
+    def pcl2_callback(self, data):
+
+        self.pointCloudBlocks = data
+        self.hasReceivedPcl = True
+
+    def pointOf(self, color):
+        return self.objectPositions[np.where(self.objectsAsNumbers == color)[0][0]]
 
     #finds the X, Y, and Z coordinates from one pixel in a PointCloud2 message
     def findXYZ(self, pixelX, pixelY):
@@ -36,21 +60,77 @@ class ObjectDetection():
         
         (X, Y ,Z) = struct.unpack_from('fff', self.pointCloudBlocks.data, offset=index)
 
-        print(X, Y, Z)
-
         #adjusted centers of an object from the bounding rectangle:
         #Z = Z + (w/2)
 
         return (X, Y, Z)
+
+    def findBlocks(self):
+        centers = np.array([[0, 300, 300], [1, 300, 300], [2, 300, 300], [3, 300, 300]])
+        idx = 0
+        img2 = self.openCVImage
+        for x in self.objects:
+            
+            rospy.loginfo(self.pkgPath + "/src/vision/" + self.objects[idx] + ".jpg")
+            img1 = cv2.imread(self.pkgPath + "/src/vision/" + self.objects[idx] + ".jpg")
+            sift = cv2.xfeatures2d.SIFT_create()
+
+            # find the keypoints and descriptors with SIFT
+            kp1, des1 = sift.detectAndCompute(img1,None)
+            kp2, des2 = sift.detectAndCompute(img2,None)
+            bf = cv2.BFMatcher()
+            matches = bf.knnMatch(des1, des2, k=2)
+
+            # ratio test
+            goodMatches = []
+            for i,(m,n) in enumerate(matches):
+                if m.distance < 0.7*n.distance:
+                    goodMatches.append(matches[i])
+                    
+            xSum = 0
+            ySum = 0
+
+            for match in goodMatches:
+                #Finds the keypoints in each image for each good match
+                a = kp2[match[0].trainIdx].pt
+                b = kp1[match[0].queryIdx].pt
+
+                xSum = xSum + a[0]
+                ySum = ySum + a[1]
+
+            xSum = int(xSum) / len(goodMatches)
+            ySum = int(ySum) / len(goodMatches)
+
+            centers[idx][1] = int(xSum)
+            centers[idx][2] = int(ySum)
+            idx = idx + 1
+
+        i = 0
+        for x in centers:
+            test = np.array(x[1],x[2])
+            (X, Y, Z) = self.findXYZ(x[1], x[2])
+
+            prePose = PoseStamped()
+            prePose.pose.position.x = X
+            prePose.pose.position.y = Y
+            prePose.pose.position.z = Z
+
+            outputPose = self.transform_pose(prePose, "head_camera_rgb_optical_frame", "base_link")
+
+            self.objectPositions[i][0] = outputPose.pose.position.x
+            self.objectPositions[i][1] = outputPose.pose.position.y
+            self.objectPositions[i][2] = outputPose.pose.position.z
+            i = i + 1
         
+        return self.objects, self.objectPositions
 
     #finds the centers of objects in an image
-    def findObjects(self, openCVImage):
-        
+    def findObjects(self):
+
         kernel = np.ones((5,5),np.uint8)
 
-        deNoisedImage = cv2.fastNlMeansDenoisingColored(openCVImage, None, 10 , 10)
-        ih, iw, ic = openCVImage.shape
+        deNoisedImage = cv2.fastNlMeansDenoisingColored(self.openCVImage, None, 10 , 10)
+        ih, iw, ic = self.openCVImage.shape
         hsv = cv2.cvtColor(deNoisedImage, cv2.COLOR_BGR2HSV)
 
         hsvMedianBlur = cv2.medianBlur(hsv, 5)
@@ -76,28 +156,28 @@ class ObjectDetection():
         redMask3 = cv2.bitwise_or(redMask, redMask2)
 
         #yellow
-        low_yellow = np.array([15,80,80])
+        low_yellow = np.array([15,100,100])
         high_yellow = np.array([35,255,255])
         yellowMask = cv2.inRange(hsvMedianBlur, low_yellow, high_yellow)
 
-        #pink
-        low_pink = np.array([135, 100, 100])
-        high_pink = np.array([180, 170, 255])
-        pinkMask = cv2.inRange(hsvMedianBlur, low_pink, high_pink)
+        #blue
+        low_blue = np.array([90, 100, 100])
+        high_blue = np.array([125, 255, 255])
+        blueMask = cv2.inRange(hsvMedianBlur, low_blue, high_blue)
 
         #creation of a mask with all objects.
         totalMask = cv2.bitwise_or(greenMask, yellowMask)
         totalMask = cv2.bitwise_or(totalMask, redMask3)
-        totalMask = cv2.bitwise_or(totalMask, pinkMask)
+        totalMask = cv2.bitwise_or(totalMask, blueMask)
 
         #noise reduction on each mask
-        erodedPinkMask = cv2.morphologyEx(pinkMask, cv2.MORPH_OPEN, kernel)
+        erodedBlueMask = cv2.morphologyEx(blueMask, cv2.MORPH_OPEN, kernel)
         erodedRedMask = cv2.morphologyEx(redMask3, cv2.MORPH_OPEN, kernel)
         erodedYellowMask = cv2.morphologyEx(yellowMask, cv2.MORPH_OPEN, kernel)
         erodedGreenMask = cv2.morphologyEx(greenMask, cv2.MORPH_OPEN, kernel)
 
         #calculation of the pixel center of each block in the image
-        maskArray = np.array([erodedYellowMask, erodedGreenMask, erodedRedMask, erodedPinkMask])
+        maskArray = np.array([erodedYellowMask, erodedGreenMask, erodedRedMask, erodedBlueMask])
         centers = np.array([[0, 300, 300], [1, 300, 300], [2, 300, 300], [3, 300, 300]])
         cv2.waitKey(0)
         idx = 0
@@ -122,18 +202,13 @@ class ObjectDetection():
                         edges[1][0] = x+1 + w
                         edges[1][0] = y-1 + (h/2)
 
-                    print(self.colors[idx])
-                    print(cx, cy)
-                    #print(cx - icx, cy - icy)
                     centers[idx][1] = int(cx)
                     centers[idx][2] = int(cy)
-                    #centers[idx][3] = w
             idx = idx + 1
 
 
         i = 0
         for x in centers:
-            print(x[1], x[2])
             test = np.array(x[1],x[2])
             (X, Y, Z) = self.findXYZ(x[1], x[2])
 
@@ -148,20 +223,19 @@ class ObjectDetection():
             self.objectPositions[i][1] = outputPose.pose.position.y
             self.objectPositions[i][2] = outputPose.pose.position.z
             i = i + 1
-        print("BASE_LINK POSITIONS: YELLOW, GREEN, RED, PINK")
-        print(self.objectPositions)
         
-        return self.colors, centers
+        return self.colors, self.objectPositions
 
     #translates the Image message to a format usable by OpenCV
-    def translateImage(self):
-        
+    def translateImage(self, image):
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(self.sub_image, "bgr8")
+            self.openCVImage = self.bridge.imgmsg_to_cv2(image, "bgr8")
+            self.openCVImage = cv2.cvtColor(self.openCVImage, cv2.COLOR_BGR2GRAY)
+            self.hasReceivedImage = True
         except CvBridgeError:
             rospy.logerr("CvBridge Error: {0}".format(CvBridgeError))
         
-        return cv_image
+        return
 
     
     #transforms a pose from one pose to another pose
@@ -173,7 +247,7 @@ class ObjectDetection():
         pose_stamped = tf2_geometry_msgs.PoseStamped()
         pose_stamped.pose = input_pose.pose
         pose_stamped.header.frame_id = from_frame
-        pose_stamped.header.stamp = rospy.Time.now()
+        pose_stamped.header.stamp = rospy.Time(0)
 
         try:
             output_pose_stamped = tf_buffer.transform(pose_stamped, to_frame, rospy.Duration(1))
@@ -205,7 +279,7 @@ class ObjectDetection():
 
         zAdjustment = leftPoseTransformed.pose.position.x - rightPoseTransformed.pose.position.x
         
-        print("\n\n\n Z Adjustment", zAdjustment, "\n\n\n\n")
+        #print("\n\n\n Z Adjustment", zAdjustment, "\n\n\n\n")
 
         return zAdjustment
 

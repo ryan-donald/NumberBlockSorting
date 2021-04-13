@@ -2,7 +2,6 @@
 
 #Ryan Donald 11/20/2020. 
 # This script accounts for the translation of an object for this project,
-# ALL VISION IS TO BE REPLACED BY ANOTHER SCRIPT LATER, ONLY FOR TESTING PURPOSES. CODE LIKELY HAS BUGS 
 
 import demo
 import copy
@@ -10,9 +9,8 @@ import rospy
 import actionlib
 import numpy as np
 import pyperplantranslate as pplt
-import re
 import blockdetection_simulation as vision
-import subprocess
+import spotdetection
 
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import PoseStamped, Quaternion
@@ -82,21 +80,22 @@ class Grasping(object):
         return success
 
     #swaps two blocks positions.
-    def swapBlockPos(self, block1, block2Pos, vision_class):
+    def swapBlockPos(self, block1, block2, vision_class, spotdetection_class):
         #intermediate point for movement
 
         self.armIntermediatePose()
 
+        rospy.sleep(1)
+        vision_class.findObjects()
         #intermediate positon on the table, used for short term storage of the first block manipulated in the sorting.
-        posIntermediate = np.array([0.725,0])
         
-        self.armIntermediatePose()
+        arMarkerPos = spotdetection_class.ARMarkerPosition
 
         # Get block to pick
         while not rospy.is_shutdown():
             rospy.loginfo("Picking object...")
             self.updateScene()
-            cube, grasps = self.getGraspableObject(block1Pos)
+            cube, grasps = self.getGraspableObject(vision_class.pointOf(block1))
             if cube == None:
                 rospy.logwarn("Perception failed.")
                 continue
@@ -106,6 +105,7 @@ class Grasping(object):
                 break
             rospy.logwarn("Grasping failed.")
         
+        self.armIntermediatePose()
         #self.tuck()
         #Place the block
         while not rospy.is_shutdown():
@@ -114,17 +114,22 @@ class Grasping(object):
             pose.pose = cube.primitive_poses[0]
             pose.pose.position.z += 0.05
             pose.header.frame_id = cube.header.frame_id
-            if self.place(cube, pose, posIntermediate):
+            if self.place(cube, pose, arMarkerPos):
                 break
             rospy.logwarn("Placing failed.")
-        
+
         #place block 2 in block 1's
         self.armIntermediatePose()
+
+        rospy.sleep(1)
+        vision_class.findObjects()
+        arMarkerPos = spotdetection_class.ARMarkerPosition
+
          # Get block to pick
         while not rospy.is_shutdown():
             rospy.loginfo("Picking object...")
             self.updateScene()
-            cube, grasps = self.getGraspableObject(block2Pos)
+            cube, grasps = self.getGraspableObject(vision_class.pointOf(block2))
             if cube == None:
                 rospy.logwarn("Perception failed.")
                 continue
@@ -134,23 +139,29 @@ class Grasping(object):
                 break
             rospy.logwarn("Grasping failed.")
 
+        self.armIntermediatePose()
         while not rospy.is_shutdown():
             rospy.loginfo("Placing object...")
             pose = PoseStamped()
             pose.pose = cube.primitive_poses[0]
             pose.pose.position.z += 0.05
             pose.header.frame_id = cube.header.frame_id
-            if self.place(cube, pose, block1Pos):
+            if self.place(cube, pose, arMarkerPos):
                 break
             rospy.logwarn("Placing failed.")
 
         #place block1 in block 2's spot
         self.armIntermediatePose()
         
+        rospy.sleep(1)
+        vision_class.findObjects()
+        arMarkerPos = spotdetection_class.ARMarkerPosition
+
+        self.armIntermediatePose()
         while not rospy.is_shutdown():
             rospy.loginfo("Picking object...")
             self.updateScene()
-            cube, grasps = self.getGraspableObject(posIntermediate)
+            cube, grasps = self.getGraspableObject(vision_class.pointOf(block1))
             if cube == None:
                 rospy.logwarn("Perception failed.")
                 continue
@@ -160,16 +171,13 @@ class Grasping(object):
                 break
             rospy.logwarn("Grasping failed.")
 
-        #self.tuck()
-        self.armIntermediatePose()
-
         while not rospy.is_shutdown():
             rospy.loginfo("Placing object...")
             pose = PoseStamped()
             pose.pose = cube.primitive_poses[0]
             pose.pose.position.z += 0.05
             pose.header.frame_id = cube.header.frame_id
-            if self.place(cube, pose, block2Pos):
+            if self.place(cube, pose, arMarkerPos):
                 break
             rospy.logwarn("Placing failed.")
 
@@ -189,11 +197,9 @@ class Grasping(object):
         l.pre_place_approach = self.pick_result.grasp.pre_grasp_approach
         l.post_place_retreat = self.pick_result.grasp.post_grasp_retreat
 
-        #this x and y value are input as placePos through the function call.
-        l.place_pose.pose.position.x = placePos[0]
-        l.place_pose.pose.position.y = placePos[1]
+        #this is the x, y, z portion of the pose, which is input by placePos
+        l.place_pose.pose.position = placePos
         
-
         places.append(copy.deepcopy(l))
 
         #success = self.pickplace.place_with_retry(block.name, places, scene = self.scene)
@@ -264,9 +270,6 @@ class Grasping(object):
             if surface.name == name:
                 return surface
         return None
-
-    def getPlaceLocation(self):
-        pass
     
     def getGraspableObject(self, pos):
         graspable = None
@@ -295,6 +298,7 @@ class Grasping(object):
 
     def armToXYZ(self, x, y, z):
         rospy.sleep(1)
+
         #new pose_stamped of the end effector that moves the arm out of the way of the vision for planning.
         intermediatePose = PoseStamped()
 
@@ -306,7 +310,6 @@ class Grasping(object):
         intermediatePose.pose.position.z = z
 
         #quaternion for the end position
-
         intermediatePose.pose.orientation.w = 1
 
 
@@ -316,9 +319,17 @@ class Grasping(object):
                 return
 
     def armIntermediatePose(self):
+        #"torso_lift_joint" ,0.36,
+        joints = ["shoulder_pan_joint", "shoulder_lift_joint", "upperarm_roll_joint",
+                  "elbow_flex_joint", "forearm_roll_joint", "wrist_flex_joint", "wrist_roll_joint"]
+                  
+        pose = [ 2.0, 0, 0, -1.7, 0, 0, 0]
 
-        self.armToXYZ(0.1,-0.7,0.9)
-        
+        while not rospy.is_shutdown():
+            result = self.move_group.moveToJointPosition(joints, pose, 0.02)
+            if result.error_code.val == MoveItErrorCodes.SUCCESS:
+                return
+
 
     def tuck(self):
         joints = ["shoulder_pan_joint", "shoulder_lift_joint", "upperarm_roll_joint",
@@ -336,30 +347,37 @@ if __name__ == "__main__":
     head_action = demo.PointHeadClient()
     rospy.loginfo("PointHeadClient Class Initialized")
 
-    head_action.look_at(0.65, 0, 0.43, "map")
-
-    rospy.sleep(2)
+    head_action.look_at(0.65, 0.0, 0.43, "base_link", duration=5.0)
 
     currentPos = np.array([[]])
 
     grasping_class = Grasping()
 
-    objectPos = objectPositions()
+    spotdetection_class = spotdetection.spotDetection()
 
 
     vision_class = vision.ObjectDetection()
 
-    colors, points = vision_class.findObjects()
+
+    rospy.loginfo("before loop")
+    while(((vision_class.hasReceivedPcl == False) and (vision_class.hasReceivedPcl == False))):
+        rospy.loginfo("inloop")
+        if((vision_class.hasReceivedPcl == True) and (vision_class.hasReceivedPcl == True)):
+            continue
+    rospy.loginfo("afterloop")
+
+    names, points = vision_class.findObjects()
 
     rospy.loginfo("Grasping Class Initialized")
 
     symbolicPlanner = pplt.PyperPlanTranslation()
 
+    vision_class.findObjects()
     #COLORS:
     #Index + 1 = number associated with object.
     numbersPositions = np.array([1,2,3,4])
 
-    sortedPoints = np.argsort(points[:,0])
+    sortedPoints = np.argsort(points[:,1])
 
     idx = 0
     numbersPositionsCopy = np.copy(numbersPositions)
@@ -368,7 +386,7 @@ if __name__ == "__main__":
         numbersPositions[idx] = numbersPositionsCopy[x]
         idx = idx + 1
 
-    symbolicPlanner.RunPlanner(numbersPositions)
+    symbolicPlanner.RunPlanner(numbersPositions[::-1])
 
     #FROM DEMO.PY
     torso_action = demo.FollowTrajectoryClient("torso_controller", ["torso_lift_joint"])
@@ -388,45 +406,13 @@ if __name__ == "__main__":
     rospy.sleep(1)
 
     for x in symbolicPlanner.commands:
-        #rospy.loginfo("forloopworks")
         temp = x.replace("(","")
         temp = temp.replace(")","")
         temp = temp.split()
-        if temp[0] == "sort":
+        if (temp[0] == "sort"):
             
             vision_class.findObjects()
-            #calls swapBlockPos on the two positions of the specified blocks in from the pyperplan solution. Eg: block 2 and block 4
-            grasping_class.swapBlockPos(np.where(vision_class.PointOf(numbersPositi2ons == temp[0][0][0])),
-                                                 vision_class.PointOf(numbersPositions == temp[1][0][0]),
-                                                 vision_class)
 
-            #Swaps the positions in the code of the two blocks that were just swapped.
-            y = objectPos.objects[objectPos.posOfObject(int(temp[1]))]
-            objectPos.objects[objectPos.posOfObject(int(temp[1]))] = objectPos.objects[objectPos.posOfObject(int(temp[2]))]
-            objectPos.objects[objectPos.posOfObject(int(temp[2]))] = y
+            grasping_class.swapBlockPos(int(temp[1]), int(temp[2]), vision_class, spotdetection_class)
 
-            #returns the arm to the intermediate pose.
-            #grasping_class.armIntermediatePose()
-        #elif "place" in x:
-            #grasping_class.place()
-        #elif "pick-up" in x:
-            # Get block to pick
-            #while not rospy.is_shutdown():
-            #    rospy.loginfo("Picking object...")
-            #    self.updateScene()
-            #    cube, grasps = self.getGraspableCube(posPlaces(objectPos.posOfObject(num(0))))
-            #    if cube == None:
-            #    rospy.logwarn("Perception failed.")
-            #    continue
-
-            # Pick the block
-            #if self.pickup(cube, grasps):
-            #    break
-            #rospy.logwarn("Grasping failed.")
-
-        #end if statements
-
-
-    #end for loop    
-    #grasping_class.swapBlockPos(posPlaces[1],posPlaces[3])
 

@@ -28,7 +28,7 @@ class PyperPlanTranslation(object):
 
         self.defineStr = "(define (problem BLOCKS-" + str(blockNumArr.size) + "-0)\n"
         self.initialArr = np.copy(blockNumArr)
-        np.sort(blockNumArr)
+        sortedArr = np.sort(blockNumArr)
         self.objStr = "(:objects "
         for x in blockNumArr:
             self.objStr = self.objStr + str(x) + " "
@@ -42,13 +42,21 @@ class PyperPlanTranslation(object):
         for x in blockNumArr:
             self.initStr = self.initStr + "(ONTABLE " + str(x) + ") "
         
+        for x in range(4):
+
+            for y in range(4):
+                
+                if (x < y):
+                    self.initStr = self.initStr + "(LEFT " + str(self.initialArr[x]) + " " + str(self.initialArr[y]) + ") "
+        
+        
         self.initStr = self.initStr + "(HANDEMPTY))\n"
 
         self.goalStr = "(:goal (AND "
 
-        for x in blockNumArr:
+        for x in sortedArr:
 
-            for y in blockNumArr:
+            for y in sortedArr:
 
                 if (x < y):
                     self.goalStr = self.goalStr + "(LEFT " + str(x) + " " + str(y) + ") "
@@ -57,11 +65,8 @@ class PyperPlanTranslation(object):
 
     #creates the task.pddl file in the right format to be used with pyperplan using the strings created 
     def CreatePDDLFile(self):
-
-        prevDir = os.getcwd()
-        print(prevDir)
         
-        outF = open(self.pkgPath + "/src/scripts/PyperPlanFiles/sortTask02.pddl", 'w')
+        outF = open(self.pkgPath + "/src/scripts/PyperPlanFiles/sortTask04.pddl", 'w')
 
         outF.write(self.defineStr + "(:domain BLOCKS)\n" + self.objStr + self.initStr + self.goalStr)
 
@@ -69,7 +74,7 @@ class PyperPlanTranslation(object):
 
     def InterpretSolution(self):
 
-        inF = open(self.pkgPath + "/src/scripts/PyperPlanFiles/sortTask02.pddl.soln", 'r')
+        inF = open(self.pkgPath + "/src/scripts/PyperPlanFiles/sortTask04.pddl.soln", 'r')
 
         self.commands = inF.readlines()
 
@@ -77,7 +82,7 @@ class PyperPlanTranslation(object):
 
     def ExecutePlanner(self):
 
-        shellCommand = "pyperplan -H hff -s gbf ~/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/scripts/PyperPlanFiles/domain.pddl ~/catkin_ws/src/NumberBlockSorting/number_block_sorting/src/scripts/PyperPlanFiles/sortTask02.pddl"
+        shellCommand = "pyperplan -H hff -s gbf " + self.pkgPath + "/src/scripts/PyperPlanFiles/domain.pddl " + self.pkgPath + "/src/scripts/PyperPlanFiles/sortTask04.pddl"
 
         subprocess.call(shellCommand, shell=True)
 
