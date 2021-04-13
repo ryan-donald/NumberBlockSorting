@@ -23,7 +23,7 @@
       <pose>0.6 0.075 0.53 0 0 0</pose>
     </include>
     <include>
-      <uri>model://cube1</uri>
+      <uri>model://cubeR</uri>
       <name>cube2</name>
       <pose>0.6 -0.075 0.53 0 0 0</pose>
     </include>
